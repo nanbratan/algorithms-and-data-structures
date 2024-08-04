@@ -42,13 +42,14 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::cmp::Ordering;
-
     use super::{selection_sort, Order};
+    use crate::selection_sort_by_key;
+    use std::cmp::Ordering;
 
     #[derive(Debug)]
     struct Book {
         pages: u32,
+        release_year: u16,
     }
     impl PartialEq<Self> for Book {
         fn eq(&self, other: &Self) -> bool {
@@ -72,13 +73,34 @@ mod tests {
     }
     fn get_struct_list() -> Vec<Book> {
         vec![
-            Book { pages: 12 },
-            Book { pages: 51515 },
-            Book { pages: 25 },
-            Book { pages: 14 },
-            Book { pages: 222 },
-            Book { pages: 424 },
-            Book { pages: 1 },
+            Book {
+                pages: 12,
+                release_year: 1952,
+            },
+            Book {
+                pages: 51515,
+                release_year: 2015,
+            },
+            Book {
+                pages: 25,
+                release_year: 1985,
+            },
+            Book {
+                pages: 14,
+                release_year: 1994,
+            },
+            Book {
+                pages: 222,
+                release_year: 1800,
+            },
+            Book {
+                pages: 424,
+                release_year: 1850,
+            },
+            Book {
+                pages: 1,
+                release_year: 1999,
+            },
         ]
     }
 
@@ -112,7 +134,7 @@ mod tests {
     }
 
     #[test]
-    fn should_sort_simple_list_by_key_asc() {
+    fn should_sort_struct_list_asc() {
         let mut list = get_struct_list();
 
         // when
@@ -122,18 +144,40 @@ mod tests {
         assert_eq!(
             list,
             vec![
-                Book { pages: 1 },
-                Book { pages: 12 },
-                Book { pages: 14 },
-                Book { pages: 25 },
-                Book { pages: 222 },
-                Book { pages: 424 },
-                Book { pages: 51515 }
+                Book {
+                    pages: 1,
+                    release_year: 1999
+                },
+                Book {
+                    pages: 12,
+                    release_year: 1952
+                },
+                Book {
+                    pages: 14,
+                    release_year: 1994
+                },
+                Book {
+                    pages: 25,
+                    release_year: 1985
+                },
+                Book {
+                    pages: 222,
+                    release_year: 2022
+                },
+                Book {
+                    pages: 424,
+                    release_year: 2024
+                },
+                Book {
+                    pages: 51515,
+                    release_year: 2015
+                }
             ]
         );
     }
+
     #[test]
-    fn should_sort_simple_list_by_key_desc() {
+    fn should_sort_struct_list_desc() {
         let mut list = get_struct_list();
 
         // when
@@ -142,14 +186,119 @@ mod tests {
         // then
         assert_eq!(
             list,
+            [
+                Book {
+                    pages: 51515,
+                    release_year: 2015
+                },
+                Book {
+                    pages: 424,
+                    release_year: 1850
+                },
+                Book {
+                    pages: 222,
+                    release_year: 1800
+                },
+                Book {
+                    pages: 25,
+                    release_year: 1985
+                },
+                Book {
+                    pages: 14,
+                    release_year: 1994
+                },
+                Book {
+                    pages: 12,
+                    release_year: 1952
+                },
+                Book {
+                    pages: 1,
+                    release_year: 1999
+                }
+            ]
+        );
+    }
+    #[test]
+    fn should_sort_struct_list_by_key_asc() {
+        let mut list = get_struct_list();
+
+        // when
+        selection_sort_by_key(&mut list, Order::Asc, |x| &x.release_year);
+
+        // then
+        assert_eq!(
+            list,
             vec![
-                Book { pages: 51515 },
-                Book { pages: 424 },
-                Book { pages: 222 },
-                Book { pages: 25 },
-                Book { pages: 14 },
-                Book { pages: 12 },
-                Book { pages: 1 }
+                Book {
+                    pages: 222,
+                    release_year: 1800
+                },
+                Book {
+                    pages: 424,
+                    release_year: 1850
+                },
+                Book {
+                    pages: 12,
+                    release_year: 1952
+                },
+                Book {
+                    pages: 25,
+                    release_year: 1985
+                },
+                Book {
+                    pages: 14,
+                    release_year: 1994
+                },
+                Book {
+                    pages: 1,
+                    release_year: 1999
+                },
+                Book {
+                    pages: 51515,
+                    release_year: 2015
+                }
+            ]
+        );
+    }
+    #[test]
+    fn should_sort_struct_list_by_key_desc() {
+        let mut list = get_struct_list();
+
+        // when
+        selection_sort_by_key(&mut list, Order::Desc, |x| &x.release_year);
+
+        // then
+        assert_eq!(
+            list,
+            vec![
+                Book {
+                    pages: 51515,
+                    release_year: 2015
+                },
+                Book {
+                    pages: 1,
+                    release_year: 1999
+                },
+                Book {
+                    pages: 14,
+                    release_year: 1994
+                },
+                Book {
+                    pages: 25,
+                    release_year: 1985
+                },
+                Book {
+                    pages: 12,
+                    release_year: 1952
+                },
+                Book {
+                    pages: 424,
+                    release_year: 1850
+                },
+                Book {
+                    pages: 222,
+                    release_year: 1800
+                }
             ]
         );
     }
