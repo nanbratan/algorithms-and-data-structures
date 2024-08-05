@@ -2,6 +2,3 @@
 name = "algorithms-and-data-structures"
 version = "0.1.0"
 edition = "2021"
-
-[dependencies]
-algorithms = { path = "src/algorithms" }

@@ -3,12 +3,5 @@
 version = 3
 
 [[package]]
-name = "algorithms"
-version = "0.1.0"
-
-[[package]]
 name = "algorithms-and-data-structures"
 version = "0.1.0"
-dependencies = [
- "algorithms",
-]

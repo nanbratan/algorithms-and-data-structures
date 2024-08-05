@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 /// # Description
 /// This algorithm uses binary search.
 ///
@@ -13,31 +15,27 @@
 /// - if middle element is desired element, then return `Some(mid)`
 /// - else if middle element is bigger than the desired one, then we shift `high` to `mid - 1`(we don't need to keep `mid` index as we already know that it is wrong). Or in other words we take a vector slice on the left from the middle element as the desired element is lower that current middle one.
 /// - else if middle element is lower than the desired one, then we shift `low` to `mid + 1`(we don't need to keep `mid` index as we already know that it is wrong). Or in other words we take a vector slice on the right from the middle element as the desired element is bigger that current middle one.
-pub fn binary_search<T>(list: &Vec<T>, element: &T) -> Option<usize>
+pub fn binary_search<T>(list: &[T], element: T) -> Option<usize>
 where
-    T: PartialEq + PartialOrd,
+    T: Eq + Ord,
 {
     let mut low = 0;
     let mut high = list.len() - 1;
 
     loop {
+        let mid = (low + high) / 2;
+
         if low == high {
             break None;
         }
 
-        let mid = (low + high) / 2;
-
-        match &list[mid] {
-            guess if guess > element => {
-                high = mid - 1;
-                continue;
+        match element.cmp(&list[mid]) {
+            Ordering::Equal => break Some(mid),
+            Ordering::Less => {
+                high = mid - 1
             }
-            guess if guess < element => {
-                low = mid + 1;
-                continue;
-            }
-            _ => {
-                break Some(mid);
+            Ordering::Greater => {
+                low = mid + 1
             }
         }
     }
@@ -53,11 +51,11 @@ mod tests {
 
     #[test]
     fn should_find_item() {
-        assert_eq!(binary_search::<i32>(&get_list(), &28), Some(28));
+        assert_eq!(binary_search::<i32>(&get_list(), 28), Some(28));
     }
     #[test]
     fn should_return_none_if_not_exist() {
-        assert_eq!(binary_search::<i32>(&get_list(), &45), None);
+        assert_eq!(binary_search::<i32>(&get_list(), 45), None);
     }
 }
 
