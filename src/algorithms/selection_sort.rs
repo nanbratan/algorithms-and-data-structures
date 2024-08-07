@@ -8,7 +8,7 @@ pub enum Order {
 ///
 /// # Complexity
 /// O(n^2)
-pub fn selection_sort_by_key<T, K, F>(list: &mut Vec<T>, order: Order, mut f: F)
+pub fn selection_sort_by_key<T, K, F>(list: &mut [T], order: Order, mut f: F)
 where
     K: PartialOrd,
     F: FnMut(&T) -> &K + Copy,
@@ -33,7 +33,7 @@ where
 ///
 /// # Complexity
 /// O(n^2)
-pub fn selection_sort<T>(list: &mut Vec<T>, order: Order)
+pub fn selection_sort<T>(list: &mut [T], order: Order)
 where
     T: PartialOrd,
 {
@@ -42,9 +42,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{selection_sort, Order};
-    use crate::selection_sort_by_key;
     use std::cmp::Ordering;
+
+    use crate::selection_sort_by_key;
+
+    use super::{Order, selection_sort};
 
     #[derive(Debug)]
     struct Book {
@@ -146,32 +148,32 @@ mod tests {
             vec![
                 Book {
                     pages: 1,
-                    release_year: 1999
+                    release_year: 1999,
                 },
                 Book {
                     pages: 12,
-                    release_year: 1952
+                    release_year: 1952,
                 },
                 Book {
                     pages: 14,
-                    release_year: 1994
+                    release_year: 1994,
                 },
                 Book {
                     pages: 25,
-                    release_year: 1985
+                    release_year: 1985,
                 },
                 Book {
                     pages: 222,
-                    release_year: 2022
+                    release_year: 2022,
                 },
                 Book {
                     pages: 424,
-                    release_year: 2024
+                    release_year: 2024,
                 },
                 Book {
                     pages: 51515,
-                    release_year: 2015
-                }
+                    release_year: 2015,
+                },
             ]
         );
     }
@@ -189,31 +191,31 @@ mod tests {
             [
                 Book {
                     pages: 51515,
-                    release_year: 2015
+                    release_year: 2015,
                 },
                 Book {
                     pages: 424,
-                    release_year: 1850
+                    release_year: 1850,
                 },
                 Book {
                     pages: 222,
-                    release_year: 1800
+                    release_year: 1800,
                 },
                 Book {
                     pages: 25,
-                    release_year: 1985
+                    release_year: 1985,
                 },
                 Book {
                     pages: 14,
-                    release_year: 1994
+                    release_year: 1994,
                 },
                 Book {
                     pages: 12,
-                    release_year: 1952
+                    release_year: 1952,
                 },
                 Book {
                     pages: 1,
-                    release_year: 1999
+                    release_year: 1999,
                 }
             ]
         );
@@ -231,32 +233,32 @@ mod tests {
             vec![
                 Book {
                     pages: 222,
-                    release_year: 1800
+                    release_year: 1800,
                 },
                 Book {
                     pages: 424,
-                    release_year: 1850
+                    release_year: 1850,
                 },
                 Book {
                     pages: 12,
-                    release_year: 1952
+                    release_year: 1952,
                 },
                 Book {
                     pages: 25,
-                    release_year: 1985
+                    release_year: 1985,
                 },
                 Book {
                     pages: 14,
-                    release_year: 1994
+                    release_year: 1994,
                 },
                 Book {
                     pages: 1,
-                    release_year: 1999
+                    release_year: 1999,
                 },
                 Book {
                     pages: 51515,
-                    release_year: 2015
-                }
+                    release_year: 2015,
+                },
             ]
         );
     }
@@ -273,32 +275,32 @@ mod tests {
             vec![
                 Book {
                     pages: 51515,
-                    release_year: 2015
+                    release_year: 2015,
                 },
                 Book {
                     pages: 1,
-                    release_year: 1999
+                    release_year: 1999,
                 },
                 Book {
                     pages: 14,
-                    release_year: 1994
+                    release_year: 1994,
                 },
                 Book {
                     pages: 25,
-                    release_year: 1985
+                    release_year: 1985,
                 },
                 Book {
                     pages: 12,
-                    release_year: 1952
+                    release_year: 1952,
                 },
                 Book {
                     pages: 424,
-                    release_year: 1850
+                    release_year: 1850,
                 },
                 Book {
                     pages: 222,
-                    release_year: 1800
-                }
+                    release_year: 1800,
+                },
             ]
         );
     }
