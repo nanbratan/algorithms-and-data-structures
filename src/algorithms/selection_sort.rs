@@ -4,7 +4,7 @@ pub enum Order {
 }
 
 /// # Description
-/// Uses selection sort
+/// Uses selection sort without any particular algorithm.
 ///
 /// # Complexity
 /// O(n^2)
@@ -28,11 +28,6 @@ where
     }
 }
 
-/// # Description
-/// Uses selection sort
-///
-/// # Complexity
-/// O(n^2)
 pub fn selection_sort<T>(list: &mut [T], order: Order)
 where
     T: PartialOrd,
