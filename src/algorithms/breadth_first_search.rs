@@ -18,7 +18,7 @@ use std::rc::Rc;
 /// # Complexity
 /// This algorithm has `O(n * e)` complexity, where `n` is a number of nodes and `e` is a number of edges(connections between nodes).
 pub fn breadth_first_search<K, T, P>(
-    head: K,
+    start_node_id: K,
     graph: &Graph<T, K>,
     predicate: P,
 ) -> Option<&Rc<Node<T, K>>>
@@ -27,7 +27,7 @@ where
     P: Fn(&T) -> bool,
 {
     let mut checked_nodes = HashMap::with_capacity(graph.len());
-    let head_node = graph.get(&head)?;
+    let head_node = graph.get(&start_node_id)?;
     let mut queue = Queue::from(head_node.nodes.as_ref()?);
 
     while let Some(queue_item) = queue.take() {
