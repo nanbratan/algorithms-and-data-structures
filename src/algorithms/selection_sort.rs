@@ -1,7 +1,7 @@
-pub enum Order {
-    Desc,
-    Asc,
-}
+// TODO: Remove line below when figure out better files structure to avoid functions with the same name as modules
+#![allow(clippy::module_name_repetitions)]
+
+use crate::algorithms::Order;
 
 /// # Description
 /// Uses selection sort without any particular algorithm.
@@ -41,7 +41,7 @@ mod tests {
 
     use crate::selection_sort_by_key;
 
-    use super::{Order, selection_sort};
+    use super::{selection_sort, Order};
 
     #[derive(Debug)]
     struct Book {

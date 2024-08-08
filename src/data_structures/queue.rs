@@ -19,6 +19,7 @@ pub struct Queue<'t, T> {
 }
 
 impl<'t, T> Queue<'t, T> {
+    #[must_use]
     pub fn new() -> Self {
         Queue {
             head: None,
@@ -26,6 +27,7 @@ impl<'t, T> Queue<'t, T> {
         }
     }
 
+    #[must_use]
     pub fn from(slice: &'t [T]) -> Self {
         let mut queue = Queue::new();
 

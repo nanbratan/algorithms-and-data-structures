@@ -1,6 +1,7 @@
 use crate::graph::{Graph, Node};
 use crate::Queue;
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::rc::Rc;
 
 /// # Description
@@ -11,13 +12,18 @@ use std::rc::Rc;
 /// 1. We're going to find a path from the head to a needed node if it exists.
 /// 2. If the path exists, then we're going to find the shortest one.
 ///
-/// Queue is used here to make sure that we'll search a layer by a layer, instead of all nodes without any order.
-/// Note that Queue is using LinkedList, so it won't contribute to capacity.
+/// `Queue` is used here to make sure that we'll search a layer by a layer, instead of all nodes without any order.
+/// Note that `Queue` is using `LinkedList`, so it won't contribute to capacity.
 ///
 /// # Complexity
 /// This algorithm has `O(n * e)` complexity, where `n` is a number of nodes and `e` is a number of edges(connections between nodes).
-pub fn breadth_first_search<K, T, P>(head: K, graph: &Graph<T, K>, predicate: P) -> Option<&Rc<Node<T, K>>>
+pub fn breadth_first_search<K, T, P>(
+    head: K,
+    graph: &Graph<T, K>,
+    predicate: P,
+) -> Option<&Rc<Node<T, K>>>
 where
+    K: Eq + Hash + Copy,
     P: Fn(&T) -> bool,
 {
     let mut checked_nodes = HashMap::with_capacity(graph.len());
@@ -38,7 +44,7 @@ where
         checked_nodes.insert(&queue_item.id, true);
 
         if let Some(nodes) = &queue_item.nodes {
-            queue.append(nodes)
+            queue.append(nodes);
         }
     }
 
