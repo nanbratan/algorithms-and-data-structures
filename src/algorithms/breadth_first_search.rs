@@ -13,22 +13,42 @@ pub struct Node<T> {
 // TODO: Move to data_structures directory
 type Graph<T> = HashMap<i32, Rc<Node<T>>>;
 
-// TODO: Add docs
+/// # Description
+/// Breadth first algorithm works via search by "layers". "layers" in this context means that the "head" is 1st level node, all nodes to which head points are 2nd level nodes,
+/// all nodes to which nodes from 2nd level point are 3rd level nodes and so on.
+///
+/// This algorithm ensures:
+/// 1. We're going to find a path from the head to a needed node if it exists.
+/// 2. If the path exists, then we're going to find the shortest one.
+///
+/// Queue is used here to make sure that we'll search a layer by a layer, instead of all nodes without any order.
+/// Note that Queue is using LinkedList, so it won't contribute to capacity.
+///
+/// # Complexity
+/// This algorithm has `O(n * e)` complexity, where `n` is a number of nodes and `e` is a number of edges(connections between nodes).
 pub fn breadth_first_search<T, P>(head: i32, graph: &Graph<T>, predicate: P) -> Option<&Rc<Node<T>>>
 where
     P: Fn(&T) -> bool,
 {
-    if let Some(head_node) = graph.get(&head) {
-        let mut queue = Queue::from(head_node.nodes.as_ref()?);
+    let mut checked_nodes = HashMap::with_capacity(graph.len());
+    let head_node = graph.get(&head)?;
+    let mut queue = Queue::from(head_node.nodes.as_ref()?);
 
-        while let Some(queue_item) = queue.take() {
-            if predicate(&queue_item.item) {
-                return Some(queue_item);
-            }
+    while let Some(queue_item) = queue.take() {
+        // Different nodes may point to a same node, so to avoid extra check of already checked nodes - we log them and skip them
+        // It also prevents infinity loop in case if we have 2 nodes which points to each other
+        if checked_nodes.contains_key(&queue_item.id) {
+            continue;
+        }
 
-            if let Some(nodes) = &queue_item.nodes {
-                queue.append(nodes)
-            }
+        if predicate(&queue_item.item) {
+            return Some(queue_item);
+        }
+
+        checked_nodes.insert(&queue_item.id, true);
+
+        if let Some(nodes) = &queue_item.nodes {
+            queue.append(nodes)
         }
     }
 
