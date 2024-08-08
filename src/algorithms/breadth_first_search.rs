@@ -1,17 +1,7 @@
+use crate::graph::{Graph, Node};
+use crate::Queue;
 use std::collections::HashMap;
 use std::rc::Rc;
-
-use crate::Queue;
-
-pub struct Node<T> {
-    id: i32,
-    item: T,
-    nodes: Option<Vec<Rc<Node<T>>>>,
-}
-
-
-// TODO: Move to data_structures directory
-type Graph<T> = HashMap<i32, Rc<Node<T>>>;
 
 /// # Description
 /// Breadth first algorithm works via search by "layers". "layers" in this context means that the "head" is 1st level node, all nodes to which head points are 2nd level nodes,
@@ -26,7 +16,7 @@ type Graph<T> = HashMap<i32, Rc<Node<T>>>;
 ///
 /// # Complexity
 /// This algorithm has `O(n * e)` complexity, where `n` is a number of nodes and `e` is a number of edges(connections between nodes).
-pub fn breadth_first_search<T, P>(head: i32, graph: &Graph<T>, predicate: P) -> Option<&Rc<Node<T>>>
+pub fn breadth_first_search<K, T, P>(head: K, graph: &Graph<T, K>, predicate: P) -> Option<&Rc<Node<T, K>>>
 where
     P: Fn(&T) -> bool,
 {
@@ -57,16 +47,16 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use std::rc::Rc;
 
     use crate::algorithms::breadth_first_search::{breadth_first_search, Node};
+    use crate::graph::Graph;
 
     struct Item(bool);
 
     #[test]
     fn should_find_shortest() {
-        let mut graph = HashMap::new();
+        let mut graph = Graph::new();
 
         let head_id = 1;
 
@@ -111,14 +101,14 @@ mod tests {
             nodes: Some(vec![Rc::clone(&two), Rc::clone(&three)]),
         });
 
-        graph.insert(8, eight);
-        graph.insert(7, seven);
-        graph.insert(6, six);
-        graph.insert(5, five);
-        graph.insert(4, four);
-        graph.insert(3, three);
-        graph.insert(2, two);
-        graph.insert(head_id, one);
+        graph.insert(eight);
+        graph.insert(seven);
+        graph.insert(six);
+        graph.insert(five);
+        graph.insert(four);
+        graph.insert(three);
+        graph.insert(two);
+        graph.insert(one);
 
         assert_eq!(
             7,
@@ -128,7 +118,7 @@ mod tests {
 
     #[test]
     fn should_not_find_anything() {
-        let mut graph = HashMap::new();
+        let mut graph = Graph::new();
 
         let head_id = 1;
 
@@ -148,9 +138,9 @@ mod tests {
             nodes: Some(vec![Rc::clone(&two), Rc::clone(&three)]),
         });
 
-        graph.insert(head_id, one);
-        graph.insert(3, three);
-        graph.insert(2, two);
+        graph.insert(one);
+        graph.insert(three);
+        graph.insert(two);
 
         assert!(breadth_first_search(1, &graph, |x| x.0).is_none());
     }
