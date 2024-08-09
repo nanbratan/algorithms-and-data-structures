@@ -1,6 +1,7 @@
 use crate::graph::{Graph, Node};
 use crate::Queue;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::rc::Rc;
 
@@ -23,7 +24,8 @@ pub fn breadth_first_search<K, T, P>(
     predicate: P,
 ) -> Option<&Rc<Node<T, K>>>
 where
-    K: Eq + Hash + Copy,
+    T: Debug,
+    K: Eq + Hash + Copy + Debug,
     P: Fn(&T) -> bool,
 {
     let mut checked_nodes = HashMap::with_capacity(graph.len());
@@ -58,6 +60,7 @@ mod tests {
     use crate::algorithms::breadth_first_search::{breadth_first_search, Node};
     use crate::graph::Graph;
 
+    #[derive(Debug)]
     struct Item(bool);
 
     #[test]

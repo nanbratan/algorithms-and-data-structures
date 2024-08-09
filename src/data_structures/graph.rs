@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::rc::Rc;
-
+#[derive(Debug)]
 pub struct Node<T, K> {
     pub id: K,
     pub item: T,
