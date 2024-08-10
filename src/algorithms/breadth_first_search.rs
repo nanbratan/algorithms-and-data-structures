@@ -70,6 +70,7 @@ mod tests {
     fn should_find_shortest() {
         let mut graph = BasicGraph::new();
 
+        // TODO: Need to re-write `graph.insert()`/`BasicGraphNode::new()` as I did it with Tree/TreeNode
         let eight = Rc::new(BasicGraphNode::new(8, Item(false), None));
         let seven = Rc::new(BasicGraphNode::new(7, Item(true), None));
         let six = Rc::new(BasicGraphNode::new(

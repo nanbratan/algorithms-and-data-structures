@@ -6,6 +6,7 @@
 ///     I'm not doing it all at one as it seems confusing and time consuming, so I'm going to splitting tasks.
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::rc::{Rc, Weak};
 
@@ -25,33 +26,34 @@ where
     fn nodes(&self) -> &RefCell<Vec<Rc<Self>>>;
 }
 
-pub trait Tree<Node, Key>
+pub trait Tree<Node, Key, V>
 where
-    Node: TreeNode,
+    Node: TreeNode<Value=V>,
 {
     fn head(&self) -> &Rc<Node>;
-    fn insert(&mut self, node: Rc<Node>);
+    fn insert(&mut self, id: Key, parent_id: Key, value: V);
     fn get(&self, node_id: &Key) -> Option<&Rc<Node>>;
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
 }
 
 #[derive(Debug)]
-pub struct BasicTreeNode<T, K> {
+pub struct BasicTreeNode<V, K>
+{
     id: K,
     parent: Option<Weak<Self>>,
-    value: T,
+    value: V,
     nodes: RefCell<Vec<Rc<Self>>>,
 }
 
-impl<T, K> BasicTreeNode<T, K> {
+impl<V, K> BasicTreeNode<V, K> {
     #[must_use]
-    pub fn new(id: K, parent: Weak<Self>, value: T, nodes: RefCell<Vec<Rc<Self>>>) -> Self {
+    pub fn new(id: K, parent: Weak<Self>, value: V) -> Self {
         Self {
             id,
             parent: Some(parent),
             value,
-            nodes,
+            nodes: RefCell::new(vec![]),
         }
     }
 }
@@ -64,10 +66,6 @@ where
     type Value = T;
 
     #[must_use]
-    fn parent(&self) -> &Option<Weak<Self>> {
-        &self.parent
-    }
-    #[must_use]
     fn id(&self) -> &Self::Id {
         &self.id
     }
@@ -76,14 +74,18 @@ where
         &self.value
     }
     #[must_use]
+    fn parent(&self) -> &Option<Weak<Self>> {
+        &self.parent
+    }
+    #[must_use]
     fn nodes(&self) -> &RefCell<Vec<Rc<Self>>> {
         &self.nodes
     }
 }
 
-pub struct BasicTree<T, K = i32> {
-    head: Rc<BasicTreeNode<T, K>>,
-    tree: HashMap<K, Rc<BasicTreeNode<T, K>>>,
+pub struct BasicTree<V, K = i32> {
+    head: Rc<BasicTreeNode<V, K>>,
+    tree: HashMap<K, Rc<BasicTreeNode<V, K>>>,
 }
 
 impl<T, K> BasicTree<T, K>
@@ -94,13 +96,12 @@ where
     pub fn from_head(
         head_id: K,
         head_value: T,
-        head_nodes: RefCell<Vec<Rc<BasicTreeNode<T, K>>>>,
     ) -> Self {
         let head = Rc::new(BasicTreeNode {
             id: head_id,
             parent: None,
             value: head_value,
-            nodes: head_nodes,
+            nodes: RefCell::new(vec![]),
         });
         let mut tree = HashMap::new();
 
@@ -110,25 +111,29 @@ where
     }
 }
 
-impl<T, K> Tree<BasicTreeNode<T, K>, K> for BasicTree<T, K>
+impl<V, K> Tree<BasicTreeNode<V, K>, K, V> for BasicTree<V, K>
 where
-    K: Eq + Hash + Copy,
+    K: Eq + Hash + Copy + Debug,
 {
-    fn insert(&mut self, node: Rc<BasicTreeNode<T, K>>) {
-        let parent = node.parent.as_ref().unwrap().upgrade();
-
-        if let Some(parent) = parent {
-            parent.nodes.borrow_mut().push(Rc::clone(&node));
-        }
-
-        self.tree.insert(node.id, node);
-    }
     #[must_use]
-    fn head(&self) -> &Rc<BasicTreeNode<T, K>> {
+    fn head(&self) -> &Rc<BasicTreeNode<V, K>> {
         &self.head
     }
+    fn insert(&mut self, id: K, parent_id: K, value: V) {
+        let parent = self.get(&parent_id);
+
+        match parent {
+            None => panic!("Can't insert a new leaf, parent with id \"{parent_id:?}\" doesn't exist"),
+            Some(parent) => {
+                let node = Rc::new(BasicTreeNode::new(id, Rc::downgrade(parent), value));
+
+                parent.nodes.borrow_mut().push(Rc::clone(&node));
+                self.tree.insert(id, node);
+            }
+        }
+    }
     #[must_use]
-    fn get(&self, node_id: &K) -> Option<&Rc<BasicTreeNode<T, K>>> {
+    fn get(&self, node_id: &K) -> Option<&Rc<BasicTreeNode<V, K>>> {
         self.tree.get(node_id)
     }
     #[must_use]
