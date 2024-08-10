@@ -8,7 +8,6 @@ where
     T: Tree<N, K, V>,
     P: Fn(&N) -> bool,
 {
-    /*let search = |nodes: &Vec<BasicTreeNode<V, K>>| -> Option<&BasicTreeNode<V, K>> {*/
     fn search<N, P>(node: Rc<N>, predicate: &P) -> Option<Rc<N>>
     where
         N: TreeNode,
