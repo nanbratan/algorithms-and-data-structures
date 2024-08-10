@@ -4,7 +4,7 @@ use std::rc::Rc;
 /// TODO: Docs
 pub fn depth_first_search<T, N, K, V, P>(tree: &T, predicate: P) -> Option<Rc<N>>
 where
-    N: TreeNode<Value=V>,
+    N: TreeNode<Value = V>,
     T: Tree<N, K, V>,
     P: Fn(&N) -> bool,
 {

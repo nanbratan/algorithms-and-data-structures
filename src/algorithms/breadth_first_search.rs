@@ -26,8 +26,8 @@ pub fn breadth_first_search<K, G, N, T, P>(
 where
     T: Debug,
     G: Graph<N, K>,
-// Debug trait only for Drop trait visualisation, it should be removed if visualisation is not needed
-    N: GraphNode<Value=T> + Debug,
+    // Debug trait only for Drop trait visualisation, it should be removed if visualisation is not needed
+    N: GraphNode<Value = T> + Debug,
     K: Eq + Hash + Copy + Debug,
     P: Fn(&T) -> bool,
 {
