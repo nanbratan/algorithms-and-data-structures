@@ -21,7 +21,6 @@ where
     fn nodes(&self) -> &Option<Vec<Rc<Self>>>;
 }
 
-
 pub trait Graph<Node, Key>
 where
     Node: GraphNode,

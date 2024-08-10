@@ -38,8 +38,7 @@ where
 }
 
 #[derive(Debug)]
-pub struct BasicTreeNode<V, K>
-{
+pub struct BasicTreeNode<V, K> {
     id: K,
     parent: Option<Weak<Self>>,
     value: V,
@@ -93,10 +92,7 @@ where
     K: Eq + Hash + Copy,
 {
     #[must_use]
-    pub fn from_head(
-        head_id: K,
-        head_value: T,
-    ) -> Self {
+    pub fn from_head(head_id: K, head_value: T) -> Self {
         let head = Rc::new(BasicTreeNode {
             id: head_id,
             parent: None,
@@ -123,7 +119,9 @@ where
         let parent = self.get(&parent_id);
 
         match parent {
-            None => panic!("Can't insert a new leaf, parent with id \"{parent_id:?}\" doesn't exist"),
+            None => {
+                panic!("Can't insert a new leaf, parent with id \"{parent_id:?}\" doesn't exist")
+            }
             Some(parent) => {
                 let node = Rc::new(BasicTreeNode::new(id, Rc::downgrade(parent), value));
 
@@ -145,4 +143,3 @@ where
         self.tree.is_empty()
     }
 }
-
