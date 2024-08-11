@@ -70,7 +70,9 @@ mod tests {
     fn should_find_shortest() {
         let mut graph = BasicGraph::new();
 
-        // TODO: Need to re-write `graph.insert()`/`BasicGraphNode::new()` as I did it with Tree/TreeNode
+        // Note: I'm not sure how this is viable to make Graph inserting nodes the same way as Tree as in case of Tree we can insert only below and a parent is single
+        // but with Graph we can insert wherever we want with any relations and with as many parents as we want.\
+        // Probably need to get back to it later with fresh ideas.
         let eight = Rc::new(BasicGraphNode::new(8, Item(false), None));
         let seven = Rc::new(BasicGraphNode::new(7, Item(true), None));
         let six = Rc::new(BasicGraphNode::new(

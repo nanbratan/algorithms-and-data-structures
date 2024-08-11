@@ -4,21 +4,20 @@ use std::rc::Rc;
 /// TODO: Docs
 pub fn depth_first_search<T, N, K, V, P>(tree: &T, predicate: P) -> Option<Rc<N>>
 where
-    N: TreeNode<Value = V>,
-    T: Tree<N, K, V>,
+    N: TreeNode<V, K>,
+    T: Tree<N, V, K>,
     P: Fn(&N) -> bool,
 {
-    fn search<N, P>(node: Rc<N>, predicate: &P) -> Option<Rc<N>>
+    fn search<N, V, K, P>(node: Rc<N>, predicate: &P) -> Option<Rc<N>>
     where
-        N: TreeNode,
+        N: TreeNode<V, K>,
         P: Fn(&N) -> bool,
     {
         if predicate(&node) {
             return Some(node);
         }
 
-        for node in node.nodes().borrow().iter() {
-            let node = Rc::clone(node);
+        for node in node.nodes() {
             let search_result = search(node, predicate);
 
             if search_result.is_some() {
@@ -35,7 +34,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::algorithms::depth_first_search::depth_first_search;
-    use crate::tree::{BasicTree, Tree, TreeNode};
+    use crate::tree::{BasicTree, TreeNode};
 
     #[test]
     fn should_find_shortest() {

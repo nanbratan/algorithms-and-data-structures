@@ -10,29 +10,29 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::rc::{Rc, Weak};
 
-
 /// The difference between a Graph and a Tree is that a Tree can't have cycles, i.e. nodes of a tree can't point to each other in both ways(children can't point to parents).
 /// So with trees we can safely have `parent_id` field
-pub trait TreeNode
-where
-    Self::Id: Hash + Eq,
-{
-    type Id;
-    type Value;
-
-    fn id(&self) -> &Self::Id;
-    fn value(&self) -> &Self::Value;
+pub trait TreeNode<V, K> {
+    fn id(&self) -> &K;
+    fn value(&self) -> &V;
     fn parent(&self) -> &Option<Weak<Self>>;
-    fn nodes(&self) -> &RefCell<Vec<Rc<Self>>>;
+    // TODO: This is probably not the best idea to create and return a new vector every time we call .nodes() method, but in BinarySearchTree I want to have nodes field as a fixed size array with 2 elements.
+    //  The issue is - I want to have fixed size array([Rc<Self>; 2]) in BinarySearchTree, but dynamically sized vector(Vec<Rc<Self>>) in Tree(because a Node in a Tree may have any amount of children).
+    //  However, I also want to specify that BinarySearchTreeNode implements TreeNode trait as I want to use BinarySearchTree wherever I can use Tree(BinarySearchTree is a Tree, but with extra logic).
+    //  So, I don't really understand for now which type should .nodes() method return
+    //      1. &Vec<_> doesn't work as I'd need to create a Vec<_> in BinarySearchTreeNode's .nodes() method and return a reference to it.
+    //          This is not possible as I can't return a reference to a local variable(because local variable is going to be dropped when scope is over and the reference to it as well).
+    //      2. &[_] is not possible as well because BinarySearchTreeNode stores nodes as Option, so we would need to create a new vector anyway to unwrap elements.
+    fn nodes(&self) -> Vec<Rc<Self>>;
 }
 
-pub trait Tree<Node, Key, V>
+pub trait Tree<Node, V, K>
 where
-    Node: TreeNode<Value=V>,
+    Node: TreeNode<V, K>,
 {
     fn head(&self) -> &Rc<Node>;
-    fn insert(&mut self, id: Key, parent_id: Key, value: V);
-    fn get(&self, node_id: &Key) -> Option<&Rc<Node>>;
+    /*fn insert(&mut self, id: K, value: V);*/
+    fn get(&self, node_id: &K) -> Option<&Rc<Node>>;
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
 }
@@ -57,19 +57,16 @@ impl<V, K> BasicTreeNode<V, K> {
     }
 }
 
-impl<T, K> TreeNode for BasicTreeNode<T, K>
+impl<V, K> TreeNode<V, K> for BasicTreeNode<V, K>
 where
     K: Hash + Eq,
 {
-    type Id = K;
-    type Value = T;
-
     #[must_use]
-    fn id(&self) -> &Self::Id {
+    fn id(&self) -> &K {
         &self.id
     }
     #[must_use]
-    fn value(&self) -> &Self::Value {
+    fn value(&self) -> &V {
         &self.value
     }
     #[must_use]
@@ -77,8 +74,8 @@ where
         &self.parent
     }
     #[must_use]
-    fn nodes(&self) -> &RefCell<Vec<Rc<Self>>> {
-        &self.nodes
+    fn nodes(&self) -> Vec<Rc<Self>> {
+        self.nodes.borrow().clone()
     }
 }
 
@@ -87,12 +84,12 @@ pub struct BasicTree<V, K = i32> {
     tree: HashMap<K, Rc<BasicTreeNode<V, K>>>,
 }
 
-impl<T, K> BasicTree<T, K>
+impl<V, K> BasicTree<V, K>
 where
-    K: Eq + Hash + Copy,
+    K: Eq + Hash + Copy + Debug,
 {
     #[must_use]
-    pub fn from_head(head_id: K, head_value: T) -> Self {
+    pub fn from_head(head_id: K, head_value: V) -> Self {
         let head = Rc::new(BasicTreeNode {
             id: head_id,
             parent: None,
@@ -105,17 +102,20 @@ where
 
         Self { head, tree }
     }
-}
-
-impl<V, K> Tree<BasicTreeNode<V, K>, K, V> for BasicTree<V, K>
-where
-    K: Eq + Hash + Copy + Debug,
-{
-    #[must_use]
-    fn head(&self) -> &Rc<BasicTreeNode<V, K>> {
-        &self.head
-    }
-    fn insert(&mut self, id: K, parent_id: K, value: V) {
+    ///
+    ///
+    /// # Arguments
+    ///
+    /// * `id`: id for new leaf
+    /// * `parent_id`: parent id for new leaf
+    /// * `value`: value for new leaf
+    ///
+    /// returns: `()`
+    ///
+    /// # Panics
+    ///
+    /// Panics if provided `parent_id` does not exist.
+    pub fn insert(&mut self, id: K, parent_id: K, value: V) {
         let parent = self.get(&parent_id);
 
         match parent {
@@ -129,6 +129,16 @@ where
                 self.tree.insert(id, node);
             }
         }
+    }
+}
+
+impl<V, K> Tree<BasicTreeNode<V, K>, V, K> for BasicTree<V, K>
+where
+    K: Eq + Hash + Copy + Debug,
+{
+    #[must_use]
+    fn head(&self) -> &Rc<BasicTreeNode<V, K>> {
+        &self.head
     }
     #[must_use]
     fn get(&self, node_id: &K) -> Option<&Rc<BasicTreeNode<V, K>>> {
