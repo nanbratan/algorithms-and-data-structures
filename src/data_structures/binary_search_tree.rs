@@ -1,3 +1,5 @@
+#![allow(clippy::module_name_repetitions)]
+
 use crate::tree::{Tree, TreeNode};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -55,7 +57,7 @@ where
 
     // TODO: Need to figure out why this method is ignored despite it being latest, so it should override previous, right?
     #[must_use]
-    fn nodes(&self) -> &RefCell<[Option<Rc<Self>>; 2]> {
+    pub fn nodes(&self) -> &RefCell<[Option<Rc<Self>>; 2]> {
         &self.nodes
     }
 }
@@ -138,6 +140,8 @@ where
     V: Ord + Eq,
     K: Eq + Hash + Copy + Debug,
 {
+    // We don't need to handle possible panic from `self.tree.get(&parent_id).unwrap()` as we check for None `child_node` before assigning its id to `parent_id`
+    #[allow(clippy::missing_panics_doc)]
     pub fn insert(&mut self, id: K, value: V) {
         let mut parent_id = self.head().id;
 

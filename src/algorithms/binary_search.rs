@@ -1,3 +1,5 @@
+#![allow(clippy::module_name_repetitions)]
+
 use crate::binary_search_tree::{BinarySearchTree, BinarySearchTreeNode};
 use crate::tree::{Tree, TreeNode};
 use std::cmp::Ordering;
@@ -45,7 +47,7 @@ where
         }
     }
 }
-pub fn binary_search_tree<V, K>(
+pub fn binary_search_for_tree<V, K>(
     tree: &BinarySearchTree<V, K>,
     desired_value: &V,
 ) -> Option<Rc<BinarySearchTreeNode<V, K>>>
@@ -53,26 +55,23 @@ where
     V: Eq + Ord,
     K: Hash + Eq + Copy + Debug,
 {
-    // TODO: I've implemented like this(storing temporarily id, instead of a pointer to a node) because there are errors with RefCell.
-    //  Need to change it back in future.
-    let mut current_node_id = *tree.head().id();
+    let mut current_node = Rc::clone(tree.head());
 
     loop {
-        let current_node = tree.get(&current_node_id)?;
+        if current_node.value() == desired_value {
+            break Some(current_node);
+        }
 
         // If a value of the `current_node` is lower or equal that the `desired_value`, then we're going to search lower items(on the left), otherwise we're going to search bigger items(on the right)
         let direction = usize::from(current_node.value() <= desired_value);
-        let nodes = current_node.nodes().borrow();
-        let next_node = nodes.get(direction);
+        // I'm getting current node from the tree here as without it here is an error that we can't re-assign `current_node` while it is still borrowed.
+        // Would like to get rid of tree.get() call here, but right now I don't know how
+        let nodes = tree.get(current_node.id())?.nodes().borrow();
 
-        match next_node {
+        match nodes[direction].as_ref() {
             None => break None,
             Some(next_node) => {
-                if current_node.value() == desired_value {
-                    break Some(Rc::clone(current_node));
-                }
-
-                current_node_id = *next_node.id();
+                current_node = Rc::clone(next_node);
             }
         }
     }
@@ -80,7 +79,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{binary_search, binary_search_tree};
+    use super::{binary_search, binary_search_for_tree};
     use crate::binary_search_tree::BinarySearchTree;
     use crate::tree::TreeNode;
 
@@ -118,11 +117,10 @@ mod tests {
         let tree = get_binary_tree();
 
         // when
-        let found_node = binary_search_tree(&tree, &20);
+        let found_node = binary_search_for_tree(&tree, &20);
 
         // then
-        let id = *found_node.unwrap().id();
-        assert_eq!(id, "twenty");
+        assert_eq!(found_node.unwrap().id(), &"twenty");
     }
     #[test]
     fn should_return_none_if_not_exist_in_binary_tree() {
@@ -130,7 +128,7 @@ mod tests {
         let tree = get_binary_tree();
 
         // when
-        let found_node = binary_search_tree(&tree, &9999);
+        let found_node = binary_search_for_tree(&tree, &9999);
 
         // then
         assert!(found_node.is_none());
