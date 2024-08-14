@@ -90,13 +90,13 @@ where
 {
     #[must_use]
     pub fn from_head(head_id: K, head_value: V) -> Self {
+        let mut tree = HashMap::new();
         let head = Rc::new(BasicTreeNode {
             id: head_id,
             parent: None,
             value: head_value,
             nodes: RefCell::new(vec![]),
         });
-        let mut tree = HashMap::new();
 
         tree.insert(head.id, Rc::clone(&head));
 
