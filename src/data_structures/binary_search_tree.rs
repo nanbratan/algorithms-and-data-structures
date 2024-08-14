@@ -55,8 +55,23 @@ where
     }
 }
 
-// TODO: Write docs with explanation what's the difference between a Tree and a BinarySearchTree
 // TODO: Write binary search algorithm for BinarySearchTree
+/// # Description
+/// `BinarySearchTree` is just a `BinaryTree`, but with additional logic implemented into `tree.insert` method.
+///
+///
+/// # Logic explanation
+/// * The insert method doesn't provide a possibility of assigning new nodes to specific leafs, instead we're doing it automatically. User only needs to provide an `id` and a `value`.
+/// * All new nodes are going to be compared against existed nodes and be assigned by principle *lower on the left, bigger on the right*.
+///
+/// **Please note** that `value` must be comparable, that means that Rust must have a possibility to compare two `value`s.
+///
+/// # What problem `BinarySearchTree` is solving
+/// We have binary search algorithm for search sorted arrays, but even though binary search has `O(log n)` complexity, it still `O(n)` to insert a new item into a sorted array.
+/// We still have to iterate through a whole array(in the worst case scenario of course) to find a place where we should insert the new element.
+/// Even if we can find an index via binary search we'd still need to move all indexes to insert new item.
+///
+/// `BinarySearchTree` has `O(log n)` for both search AND inserting, which makes it superfast at all possible operations(insert, search, delete, edit, maybe something else?).
 struct BinarySearchTree<V, K> {
     head: Rc<BinarySearchTreeNode<V, K>>,
     tree: HashMap<K, Rc<BinarySearchTreeNode<V, K>>>,
