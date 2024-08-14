@@ -16,13 +16,6 @@ pub trait TreeNode<V, K> {
     fn id(&self) -> &K;
     fn value(&self) -> &V;
     fn parent(&self) -> &Option<Weak<Self>>;
-    // TODO: This is probably not the best idea to create and return a new vector every time we call .nodes() method, but in BinarySearchTree I want to have nodes field as a fixed size array with 2 elements.
-    //  The issue is - I want to have fixed size array([Rc<Self>; 2]) in BinarySearchTree, but dynamically sized vector(Vec<Rc<Self>>) in Tree(because a Node in a Tree may have any amount of children).
-    //  However, I also want to specify that BinarySearchTreeNode implements TreeNode trait as I want to use BinarySearchTree wherever I can use Tree(BinarySearchTree is a Tree, but with extra logic).
-    //  So, I don't really understand for now which type should .nodes() method return
-    //      1. &Vec<_> doesn't work as I'd need to create a Vec<_> in BinarySearchTreeNode's .nodes() method and return a reference to it.
-    //          This is not possible as I can't return a reference to a local variable(because local variable is going to be dropped when scope is over and the reference to it as well).
-    //      2. &[_] is not possible as well because BinarySearchTreeNode stores nodes as Option, so we would need to create a new vector anyway to unwrap elements.
     fn nodes(&self) -> &RefCell<Vec<Rc<Self>>>;
 }
 

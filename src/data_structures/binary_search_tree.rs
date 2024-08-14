@@ -36,6 +36,8 @@ where
 
     #[must_use]
     fn nodes(&self) -> &RefCell<Vec<Rc<Self>>> {
+        // TODO: I want BinarySearchTree to be bound to Tree trait as it is a tree after all, but TreeNode and BinarySearchTreeNode have different `nodes` values and it's not possible(I mean it is possible, but it is not a good idea) to unify it.
+        //  So for now I just override .nodes method, so appropriate can be used. But I'm not sure if this is a good solution, probably not.
         todo!()
     }
 }
@@ -55,14 +57,12 @@ where
         }
     }
 
-    // TODO: Need to figure out why this method is ignored despite it being latest, so it should override previous, right?
     #[must_use]
     pub fn nodes(&self) -> &RefCell<[Option<Rc<Self>>; 2]> {
         &self.nodes
     }
 }
 
-// TODO: Write binary search algorithm for BinarySearchTree
 /// # Description
 /// `BinarySearchTree` is just a `BinaryTree`, but with additional logic implemented into `tree.insert` method.
 ///

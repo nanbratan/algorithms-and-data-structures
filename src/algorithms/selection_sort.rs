@@ -1,4 +1,3 @@
-// TODO: Remove line below when figure out better files structure to avoid functions with the same name as modules
 #![allow(clippy::module_name_repetitions)]
 
 use crate::algorithms::Order;
