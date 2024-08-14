@@ -8,16 +8,16 @@ where
     T: Tree<N, V, K>,
     P: Fn(&N) -> bool,
 {
-    fn search<N, V, K, P>(node: Rc<N>, predicate: &P) -> Option<Rc<N>>
+    fn search<N, V, K, P>(node: &Rc<N>, predicate: &P) -> Option<Rc<N>>
     where
         N: TreeNode<V, K>,
         P: Fn(&N) -> bool,
     {
-        if predicate(&node) {
-            return Some(node);
+        if predicate(node) {
+            return Some(Rc::clone(node));
         }
 
-        for node in node.nodes() {
+        for node in node.nodes().borrow().iter() {
             let search_result = search(node, predicate);
 
             if search_result.is_some() {
@@ -28,7 +28,7 @@ where
         None
     }
 
-    search(Rc::clone(tree.head()), &predicate)
+    search(tree.head(), &predicate)
 }
 
 #[cfg(test)]

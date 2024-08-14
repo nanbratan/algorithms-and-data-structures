@@ -23,7 +23,7 @@ pub trait TreeNode<V, K> {
     //      1. &Vec<_> doesn't work as I'd need to create a Vec<_> in BinarySearchTreeNode's .nodes() method and return a reference to it.
     //          This is not possible as I can't return a reference to a local variable(because local variable is going to be dropped when scope is over and the reference to it as well).
     //      2. &[_] is not possible as well because BinarySearchTreeNode stores nodes as Option, so we would need to create a new vector anyway to unwrap elements.
-    fn nodes(&self) -> Vec<Rc<Self>>;
+    fn nodes(&self) -> &RefCell<Vec<Rc<Self>>>;
 }
 
 pub trait Tree<Node, V, K>
@@ -74,8 +74,8 @@ where
         &self.parent
     }
     #[must_use]
-    fn nodes(&self) -> Vec<Rc<Self>> {
-        self.nodes.borrow().clone()
+    fn nodes(&self) -> &RefCell<Vec<Rc<Self>>> {
+        &self.nodes
     }
 }
 

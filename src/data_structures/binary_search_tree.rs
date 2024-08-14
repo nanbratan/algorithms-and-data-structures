@@ -5,23 +5,11 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::rc::{Rc, Weak};
 
-struct BinarySearchTreeNode<V, K> {
+pub struct BinarySearchTreeNode<V, K> {
     id: K,
     value: V,
     parent: Option<Weak<Self>>,
     nodes: RefCell<[Option<Rc<Self>>; 2]>,
-}
-
-impl<V, K> BinarySearchTreeNode<V, K> {
-    #[must_use]
-    pub fn new(id: K, parent: Weak<Self>, value: V) -> Self {
-        Self {
-            id,
-            value,
-            parent: Some(parent),
-            nodes: RefCell::new([None, None]),
-        }
-    }
 }
 
 impl<V, K> TreeNode<V, K> for BinarySearchTreeNode<V, K>
@@ -45,13 +33,30 @@ where
     }
 
     #[must_use]
-    fn nodes(&self) -> Vec<Rc<Self>> {
-        self.nodes
-            .borrow()
-            .iter()
-            .filter(|&x| x.is_some())
-            .map(|x| Rc::clone(x.as_ref().unwrap()))
-            .collect::<Vec<Rc<Self>>>()
+    fn nodes(&self) -> &RefCell<Vec<Rc<Self>>> {
+        todo!()
+    }
+}
+
+impl<V, K> BinarySearchTreeNode<V, K>
+where
+    V: Ord + Eq,
+    K: Eq + Hash + Copy + Debug,
+{
+    #[must_use]
+    pub fn new(id: K, parent: Weak<Self>, value: V) -> Self {
+        Self {
+            id,
+            value,
+            parent: Some(parent),
+            nodes: RefCell::new([None, None]),
+        }
+    }
+
+    // TODO: Need to figure out why this method is ignored despite it being latest, so it should override previous, right?
+    #[must_use]
+    fn nodes(&self) -> &RefCell<[Option<Rc<Self>>; 2]> {
+        &self.nodes
     }
 }
 
@@ -72,7 +77,7 @@ where
 /// Even if we can find an index via binary search we'd still need to move all indexes to insert new item.
 ///
 /// `BinarySearchTree` has `O(log n)` for both search AND inserting, which makes it superfast at all possible operations(insert, search, delete, edit, maybe something else?).
-struct BinarySearchTree<V, K> {
+pub struct BinarySearchTree<V, K> {
     head: Rc<BinarySearchTreeNode<V, K>>,
     tree: HashMap<K, Rc<BinarySearchTreeNode<V, K>>>,
 }
@@ -94,6 +99,11 @@ where
         tree.insert(head.id, Rc::clone(&head));
 
         Self { head, tree }
+    }
+
+    #[must_use]
+    pub fn head(&self) -> &Rc<BinarySearchTreeNode<V, K>> {
+        &self.head
     }
 }
 
@@ -169,7 +179,7 @@ mod tests {
         tree.insert("twenty", 20);
 
         // Checking nodes on sides from head, should be 4 on the left and 8 on the right
-        let head_nodes = tree.head.nodes.borrow();
+        let head_nodes = tree.head().nodes.borrow();
         let head_left = head_nodes[0].as_ref().unwrap();
         let head_right = head_nodes[1].as_ref().unwrap();
         assert_eq!(4, head_left.value);

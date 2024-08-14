@@ -1,4 +1,9 @@
+use crate::binary_search_tree::{BinarySearchTree, BinarySearchTreeNode};
+use crate::tree::{Tree, TreeNode};
 use std::cmp::Ordering;
+use std::fmt::Debug;
+use std::hash::Hash;
+use std::rc::Rc;
 
 /// # Description
 /// This algorithm uses binary search.
@@ -40,22 +45,94 @@ where
         }
     }
 }
+pub fn binary_search_tree<V, K>(
+    tree: &BinarySearchTree<V, K>,
+    desired_value: &V,
+) -> Option<Rc<BinarySearchTreeNode<V, K>>>
+where
+    V: Eq + Ord,
+    K: Hash + Eq + Copy + Debug,
+{
+    // TODO: I've implemented like this(storing temporarily id, instead of a pointer to a node) because there are errors with RefCell.
+    //  Need to change it back in future.
+    let mut current_node_id = *tree.head().id();
 
-#[cfg(test)]
-mod tests {
-    use super::binary_search;
+    loop {
+        let current_node = tree.get(&current_node_id)?;
 
-    fn get_list() -> Vec<i32> {
-        vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
-    }
+        // If a value of the `current_node` is lower or equal that the `desired_value`, then we're going to search lower items(on the left), otherwise we're going to search bigger items(on the right)
+        let direction = usize::from(current_node.value() <= desired_value);
+        let nodes = current_node.nodes().borrow();
+        let next_node = nodes.get(direction);
 
-    #[test]
-    fn should_find_item() {
-        assert_eq!(binary_search::<i32>(&get_list(), &28), Some(28));
-    }
-    #[test]
-    fn should_return_none_if_not_exist() {
-        assert_eq!(binary_search::<i32>(&get_list(), &45), None);
+        match next_node {
+            None => break None,
+            Some(next_node) => {
+                if current_node.value() == desired_value {
+                    break Some(Rc::clone(current_node));
+                }
+
+                current_node_id = *next_node.id();
+            }
+        }
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::{binary_search, binary_search_tree};
+    use crate::binary_search_tree::BinarySearchTree;
+    use crate::tree::TreeNode;
+
+    fn get_list() -> Vec<i32> {
+        vec![
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+            24, 25, 26, 27, 28, 29, 30, 31, 32,
+        ]
+    }
+    fn get_binary_tree<'a>() -> BinarySearchTree<i32, &'a str> {
+        let mut tree = BinarySearchTree::from_head("head_id", 5);
+
+        tree.insert("fourth", 4);
+        tree.insert("third", 3);
+        tree.insert("eighth", 8);
+        tree.insert("sixth", 6);
+        tree.insert("eleventh", 11);
+        tree.insert("twenty", 20);
+
+        tree
+    }
+
+    #[test]
+    fn should_find_item_in_vector() {
+        assert_eq!(binary_search::<i32>(&get_list(), &28), Some(28));
+    }
+    #[test]
+    fn should_return_none_if_not_exist_in_vector() {
+        assert_eq!(binary_search::<i32>(&get_list(), &45), None);
+    }
+
+    #[test]
+    fn should_find_item_in_binary_tree() {
+        // given
+        let tree = get_binary_tree();
+
+        // when
+        let found_node = binary_search_tree(&tree, &20);
+
+        // then
+        let id = *found_node.unwrap().id();
+        assert_eq!(id, "twenty");
+    }
+    #[test]
+    fn should_return_none_if_not_exist_in_binary_tree() {
+        // given
+        let tree = get_binary_tree();
+
+        // when
+        let found_node = binary_search_tree(&tree, &9999);
+
+        // then
+        assert!(found_node.is_none());
+    }
+}
