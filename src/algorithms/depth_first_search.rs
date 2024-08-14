@@ -1,7 +1,22 @@
 use crate::tree::{Tree, TreeNode};
 use std::rc::Rc;
 
-/// TODO: Docs
+/// # Description
+///
+/// This is traversal algorithm, which means that we recursively go through all nodes in whole tree.
+/// So the difference from breadth first search algorithm is that in BFS we search by layers, but in DFS we search branch by branch.
+/// In DFS - If desired node is in first level, but in the last branch, then we won't get it until we check all branches before the last one.
+/// In BFS - If desired node in the first branch, but it is the latest node, then we won't get it until we check ALL layers, which means all elements
+///
+/// So in terms of complexity both `DFS` and `BFS` have the same `O` complexity
+/// * If used with graphs - `O(n * e)`, where `n` is a number of nodes and `e` is a number of edges.
+/// * If used with trees - `O(n)`, where `n` is a number of nodes.
+///
+/// **Note** that complexity is different for graphs and trees because:
+/// * graphs are more flexible with edges, i.e. graphs' nodes may have multiple parents and point to each other making cycles.
+/// * trees are more conservative, tree's nodes can have only one parent, and they cannot have cycles(nodes can't point to parents)
+///
+/// So there is no faster algorithm between DFS and BFS, it depends on details.
 pub fn depth_first_search<T, N, K, V, P>(tree: &T, predicate: P) -> Option<Rc<N>>
 where
     N: TreeNode<V, K>,
