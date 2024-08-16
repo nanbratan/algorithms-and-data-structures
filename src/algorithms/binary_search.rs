@@ -1,7 +1,6 @@
 #![allow(clippy::module_name_repetitions)]
 
 use crate::binary_search_tree::{BinarySearchTree, BinarySearchTreeNode};
-use crate::tree::{Tree, TreeNode};
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -66,7 +65,7 @@ where
         let direction = usize::from(current_node.value() <= desired_value);
         // I'm getting current node from the tree here as without it here is an error that we can't re-assign `current_node` while it is still borrowed.
         // Would like to get rid of tree.get() call here, but right now I don't know how
-        let nodes = tree.get(current_node.id())?.nodes().borrow();
+        let nodes = tree.get(current_node.id())?.nodes();
 
         match nodes[direction].as_ref() {
             None => break None,
