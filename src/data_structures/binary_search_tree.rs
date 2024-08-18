@@ -13,6 +13,22 @@ enum Directions {
     Right,
 }
 
+impl Directions {
+    fn get_opposite(direction: Directions) -> Directions {
+        match direction {
+            Directions::Left => Directions::Right,
+            Directions::Right => Directions::Left,
+        }
+    }
+
+    fn get_depth(direction: Directions) -> i32 {
+        match direction {
+            Directions::Left => -1,
+            Directions::Right => 1,
+        }
+    }
+}
+
 pub struct BinarySearchTreeNode<V, K> {
     id: K,
     value: V,
@@ -147,8 +163,21 @@ where
 
         let node = Rc::new(BinarySearchTreeNode::new(id, Rc::downgrade(parent), value));
         parent.nodes.borrow_mut()[direction as usize] = Some(Rc::clone(&node));
-        self.update_depth(&node, direction);
-        self.tree.insert(id, node);
+        self.tree.insert(id, Rc::clone(&node));
+        self.update_depth(&node);
+    }
+
+    fn get_directions(
+        parent: &Rc<BinarySearchTreeNode<V, K>>,
+        child: &Rc<BinarySearchTreeNode<V, K>>,
+    ) -> Directions {
+        if let Some(left) = parent.nodes.borrow()[Directions::Left as usize].as_ref() {
+            if left.id == child.id {
+                return Directions::Left;
+            }
+        }
+
+        Directions::Right
     }
 
     // TODO: Need to forget about balancing 3 items and just recursively update depth of all parent nodes after insertion
@@ -161,32 +190,45 @@ where
     /// 1. `first_level_node` - just inserted node, or the latest child in a chain.
     /// 2. `second_level_node` - parent node of `third_level_node`, or middle node in our 3 items chain
     /// 3. `third_level_node` - parent of `second_level_node`, or the first node in out 3 item chain
-    fn update_depth(
-        &mut self,
-        inserted_node: &Rc<BinarySearchTreeNode<V, K>>,
-        insert_direction: Directions,
-    ) {
-        // TODO: Change additional_depth to dynamic, instead of static value
-        //  I should get additional depth by a child, i.e. if current child is on the left from parent, then we should bump parent depth by -1, otherwise by 1
-        //  That means that it doesn't matter if inserted node has been inserted on the left or right. We should determine new depth while we travers from bottom to top of our tree.
-        //  There are some additional notes in the notebook
-        let additional_depth = match insert_direction {
-            Directions::Left => -1,
-            Directions::Right => 1,
-        };
-
-        let mut parent = inserted_node.parent().upgrade();
+    fn update_depth(&mut self, inserted_node: &Rc<BinarySearchTreeNode<V, K>>) {
+        let mut parent_child = Rc::clone(inserted_node);
+        let mut parent = parent_child.parent().upgrade();
 
         while let Some(parent_node) = parent {
-            let new_depth = *parent_node.one_side_depth.borrow() + additional_depth;
+            let direction = BinarySearchTree::get_directions(&parent_node, &parent_child);
+            let additional_depth = match direction {
+                Directions::Left => -1,
+                Directions::Right => 1,
+            };
+
+            let mut new_depth = *parent_node.one_side_depth.borrow();
+
+            new_depth += additional_depth;
+            /*// Update depth only if depth of a branch has been extended
+            if *parent_child.one_side_depth.borrow() != 0 {
+                new_depth += additional_depth;
+            }*/
+
             *parent_node.one_side_depth.borrow_mut() = new_depth;
 
-            if new_depth >= 2 || new_depth <= -2 {
-                self.balance(&parent_node, insert_direction);
+            let is_simple_rotation = new_depth >= 2 && *parent_child.one_side_depth.borrow() > 0
+                || new_depth <= -2 && *parent_child.one_side_depth.borrow() < 0;
+            let is_double_rotation = new_depth >= 2 && *parent_child.one_side_depth.borrow() < 0
+                || new_depth <= -2 && *parent_child.one_side_depth.borrow() > 0;
+
+            if is_simple_rotation {
+                self.simple_rotation(&parent_node, direction);
+                break;
+            }
+
+            if is_double_rotation {
+                self.double_rotation(&parent_node, direction);
+                self.simple_rotation(&parent_node, direction);
                 break;
             }
 
             parent = parent_node.parent().upgrade();
+            parent_child = parent_node;
         }
     }
 
@@ -198,35 +240,76 @@ where
     /// 1. `first_level_node` - just inserted node, or the latest child in a chain.
     /// 2. `second_level_node` - parent node of `third_level_node`, or middle node in our 3 items chain
     /// 3. `third_level_node` - parent of `second_level_node`, or the first node in out 3 item chain
-    fn balance(
+    fn simple_rotation(
         &mut self,
-        node_to_balance: &Rc<BinarySearchTreeNode<V, K>>,
-        insert_direction: Directions,
+        first_level_node: &Rc<BinarySearchTreeNode<V, K>>,
+        balance_direction: Directions,
     ) {
-        let opposite_direction = match insert_direction {
-            Directions::Left => Directions::Right,
-            Directions::Right => Directions::Left,
-        };
+        let opposite_direction = Directions::get_opposite(balance_direction);
 
-        let mut nodes = node_to_balance.nodes.borrow_mut();
-        let next_after_node_to_balance =
-            Rc::clone(nodes[insert_direction as usize].as_ref().unwrap());
+        let mut nodes = first_level_node.nodes.borrow_mut();
+        let second_level_node = Rc::clone(nodes[balance_direction as usize].as_ref().unwrap());
 
-        nodes[insert_direction as usize] =
-            next_after_node_to_balance.nodes.borrow_mut()[opposite_direction as usize].take();
-        next_after_node_to_balance.nodes.borrow_mut()[opposite_direction as usize] =
-            Some(Rc::clone(node_to_balance));
+        // TODO: When I change children I also need to change their parent(parent field, which contains Weak link to a parent). So when we update depth on next insert we'll be able to take appropriate parent.
+        //  Currently we take old parent.
+        //  E.g. if node 20 has been moved from node 30 to node 40, then we need to change its parent as well(from 30 to 40), not just children of 30 and 40
+        nodes[balance_direction as usize] =
+            second_level_node.nodes.borrow_mut()[opposite_direction as usize].take();
 
-        match node_to_balance.parent().upgrade() {
+        second_level_node.nodes.borrow_mut()[opposite_direction as usize] =
+            Some(Rc::clone(first_level_node));
+
+        // TODO: Probably need to think about better way to calculate depth as it's not always 0 after balancing.
+        *second_level_node.one_side_depth.borrow_mut() = 0;
+        *first_level_node.one_side_depth.borrow_mut() = 0;
+
+        match first_level_node.parent().upgrade() {
             // Our three elements are the only elements in a tree
             None => {
-                self.head = next_after_node_to_balance;
+                self.head = second_level_node;
             }
             Some(parent_of_three) => {
-                parent_of_three.nodes.borrow_mut()[insert_direction as usize] =
-                    Some(next_after_node_to_balance);
+                parent_of_three.nodes.borrow_mut()[balance_direction as usize] =
+                    Some(second_level_node);
             }
         }
+    }
+
+    fn double_rotation(
+        &mut self,
+        first_level_node: &Rc<BinarySearchTreeNode<V, K>>,
+        balance_direction: Directions,
+    ) {
+        let opposite_direction = Directions::get_opposite(balance_direction);
+
+        let mut nodes_of_first_level = first_level_node.nodes.borrow_mut();
+        let second_level_node = Rc::clone(
+            nodes_of_first_level[balance_direction as usize]
+                .as_ref()
+                .unwrap(),
+        );
+
+        let mut nodes_of_second_level = second_level_node.nodes.borrow_mut();
+        let third_level_node = Rc::clone(
+            nodes_of_second_level[opposite_direction as usize]
+                .as_ref()
+                .unwrap(),
+        );
+
+        // TODO: Probably need to think about better way to calculate depth as it's not always 2/1/0 after balancing.
+        *first_level_node.one_side_depth.borrow_mut() =
+            Directions::get_depth(balance_direction) * 2;
+        *second_level_node.one_side_depth.borrow_mut() = Directions::get_depth(balance_direction);
+        *third_level_node.one_side_depth.borrow_mut() = 0;
+
+        // TODO: When I change children I also need to change their parent(parent field, which contains Weak link to a parent). So when we update depth on next insert we'll be able to take appropriate parent.
+        //  Currently we take old parent.
+        //  E.g. if node 20 has been moved from node 30 to node 40, then we need to change its parent as well(from 30 to 40), not just children of 30 and 40
+        nodes_of_second_level[opposite_direction as usize] =
+            third_level_node.nodes.borrow_mut()[balance_direction as usize].take();
+        third_level_node.nodes.borrow_mut()[balance_direction as usize] =
+            Some(Rc::clone(&second_level_node));
+        nodes_of_first_level[balance_direction as usize] = Some(Rc::clone(&third_level_node));
     }
 }
 
@@ -244,33 +327,41 @@ mod tests {
         tree.insert("eleventh", 11);
         tree.insert("twenty", 20);
 
-        // Checking nodes on sides from head, should be 4 on the left and 8 on the right
-        let head_nodes = tree.head().nodes.borrow();
-        let head_left = head_nodes[0].as_ref().unwrap();
-        let head_right = head_nodes[1].as_ref().unwrap();
-        assert_eq!(3, head_left.value);
-        assert_eq!(8, head_right.value);
+        // Checking that head node is correct after balancing
+        let head = tree.head();
+        assert_eq!(8, head.value);
 
-        // Checking nodes on sides from 4, should be 3 on the left and None on the right
-        let third_nodes = head_nodes[0].as_ref().unwrap().nodes.borrow();
+        // Checking nodes on sides from head, should be 4 on the left and 8 on the right
+        let head_nodes = head.nodes.borrow();
+        let four_node = head_nodes[0].as_ref().unwrap();
+        let eleven_node = head_nodes[1].as_ref().unwrap();
+        assert_eq!(4, four_node.value);
+        assert_eq!(11, eleven_node.value);
+
+        // Checking nodes on sides from 4, should be 3 on the left and 6 on the right
+        let four_nodes = four_node.nodes.borrow();
+        let three_node = four_nodes[0].as_ref().unwrap();
+        let six_node = four_nodes[1].as_ref().unwrap();
+        assert_eq!(3, three_node.value);
+        assert_eq!(6, six_node.value);
+
+        let third_nodes = three_node.nodes.borrow();
         assert!(third_nodes.iter().all(Option::is_none));
+        let six_nodes = six_node.nodes.borrow();
+        assert!(six_nodes.iter().all(Option::is_none));
 
         // Checking nodes on sides from 8, should be 6 on the left and 11 on the right
-        let eighth_nodes = head_nodes[1].as_ref().unwrap().nodes.borrow();
-        let eighth_nodes_left = eighth_nodes[0].as_ref().unwrap();
-        let eighth_nodes_right = eighth_nodes[1].as_ref().unwrap();
-        assert_eq!(6, eighth_nodes_left.value);
-        assert_eq!(11, eighth_nodes_right.value);
+        let eleven_nodes = eleven_node.nodes.borrow();
+        let twenty_node = eleven_nodes[1].as_ref().unwrap();
+        assert!(eleven_nodes[0].is_none());
+        assert_eq!(20, twenty_node.value);
 
         // Checking nodes on sides from 8, should be None on the left and 20 on the right
-        let eleventh_nodes = eighth_nodes[1].as_ref().unwrap().nodes.borrow();
-        let eleventh_nodes_left = &eleventh_nodes[0];
-        let eleventh_nodes_right = eleventh_nodes[1].as_ref().unwrap();
-        assert!(eleventh_nodes_left.is_none());
-        assert_eq!(20, eleventh_nodes_right.value);
+        let twenty_nodes = twenty_node.nodes.borrow();
+        assert!(twenty_nodes.iter().all(Option::is_none));
     }
 
-    /* #[test]
+    #[test]
     fn should_balance_tree() {
         let mut tree = BinarySearchTree::from_head("sixty", 60);
 
@@ -279,21 +370,57 @@ mod tests {
         tree.insert("thirty", 30);
         tree.insert("twenty", 20);
 
-        tree.insert("ten", 10);
-        tree.insert("nine", 9);
+        /*let head = tree.head();
+        assert_eq!(50, head.value);
 
-        tree.insert("seventy", 70);
+        let nodes = head.nodes();
+        let thirty_node = nodes[0].as_ref().unwrap();
+        let sixty_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&30, thirty_node.value());
+        assert_eq!(&60, sixty_node.value());
+
+        let nodes = thirty_node.nodes();
+        let twenty_node = nodes[0].as_ref().unwrap();
+        let forty_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&20, twenty_node.value());
+        assert_eq!(&40, forty_node.value());*/
+
+        tree.insert("ten", 10);
+        /*tree.insert("nine", 9);*/
+
+        let head = tree.head();
+        assert_eq!(30, head.value);
+
+        let nodes = head.nodes();
+        let ten_node = nodes[0].as_ref().unwrap();
+        let fifty_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&10, ten_node.value());
+        assert_eq!(&50, fifty_node.value());
+
+        let nodes = ten_node.nodes();
+        let nine_node = nodes[0].as_ref().unwrap();
+        let twenty_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&9, nine_node.value());
+        assert_eq!(&20, twenty_node.value());
+
+        let nodes = fifty_node.nodes();
+        let forty_node = nodes[0].as_ref().unwrap();
+        let sixty_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&40, forty_node.value());
+        assert_eq!(&60, sixty_node.value());
+
+        /*tree.insert("seventy", 70);
         tree.insert("eighty", 80);
         tree.insert("ninety", 90);
         tree.insert("hundred", 100);
 
         tree.insert("sixty_five", 65);
         tree.insert("sixty_six", 66);
-        tree.insert("sixty_seven", 67);
+        tree.insert("sixty_seven", 67);*/
 
         // Checking that head node is correct after balancing
-        let head = tree.head();
-         assert_eq!(&50, head.value());
+        /*let head = tree.head();
+        assert_eq!(50, head.value);
 
         // Checking child nodes of head, should be 30 on the left and 70 on the right
         let nodes = head.nodes();
@@ -354,6 +481,6 @@ mod tests {
         assert_eq!(&10, hundred_node.value());
 
         // Checking child nodes of 100, should be empty on both sides
-        assert!(hundred_node.nodes().iter().all(Option::is_none));
-    }*/
+        assert!(hundred_node.nodes().iter().all(Option::is_none));*/
+    }
 }
