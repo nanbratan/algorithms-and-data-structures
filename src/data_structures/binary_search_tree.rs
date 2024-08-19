@@ -33,7 +33,7 @@ pub struct BinarySearchTreeNode<V, K> {
     id: K,
     value: V,
     one_side_depth: RefCell<i32>,
-    parent: Weak<Self>,
+    parent: RefCell<Weak<Self>>,
     nodes: RefCell<[Option<Rc<Self>>; 2]>,
 }
 
@@ -48,7 +48,7 @@ where
             id,
             value,
             one_side_depth: RefCell::new(0),
-            parent,
+            parent: RefCell::new(parent),
             nodes: RefCell::new([None, None]),
         }
     }
@@ -69,8 +69,8 @@ where
     }
 
     #[must_use]
-    pub fn parent(&self) -> &Weak<Self> {
-        &self.parent
+    pub fn parent(&self) -> impl Deref<Target = Weak<Self>> + '_ {
+        Ref::map(self.parent.borrow(), |x| x)
     }
 }
 
@@ -107,7 +107,7 @@ where
             id: head_id,
             value: head_value,
             one_side_depth: RefCell::new(0),
-            parent: Weak::new(),
+            parent: RefCell::new(Weak::new()),
             nodes: RefCell::new([None, None]),
         });
 
@@ -180,9 +180,6 @@ where
         Directions::Right
     }
 
-    // TODO: Need to forget about balancing 3 items and just recursively update depth of all parent nodes after insertion
-    //  If new depth is >= 2 of <= -2, then rotate
-
     /// We store/update depth to perform balancing if one side depth is deeper than 1 child.
     /// That means if a node has 2 children on one side and 0 children on another side, then we should balance this node.
     ///
@@ -204,10 +201,6 @@ where
             let mut new_depth = *parent_node.one_side_depth.borrow();
 
             new_depth += additional_depth;
-            /*// Update depth only if depth of a branch has been extended
-            if *parent_child.one_side_depth.borrow() != 0 {
-                new_depth += additional_depth;
-            }*/
 
             *parent_node.one_side_depth.borrow_mut() = new_depth;
 
@@ -250,29 +243,42 @@ where
         let mut nodes = first_level_node.nodes.borrow_mut();
         let second_level_node = Rc::clone(nodes[balance_direction as usize].as_ref().unwrap());
 
-        // TODO: When I change children I also need to change their parent(parent field, which contains Weak link to a parent). So when we update depth on next insert we'll be able to take appropriate parent.
-        //  Currently we take old parent.
-        //  E.g. if node 20 has been moved from node 30 to node 40, then we need to change its parent as well(from 30 to 40), not just children of 30 and 40
-        nodes[balance_direction as usize] =
+        let second_level_node_opposite_child =
             second_level_node.nodes.borrow_mut()[opposite_direction as usize].take();
 
+        if let Some(second_level_node_opposite_child) = second_level_node_opposite_child {
+            *second_level_node_opposite_child.parent.borrow_mut() = Rc::downgrade(first_level_node);
+            nodes[balance_direction as usize] = Some(second_level_node_opposite_child);
+        } else {
+            nodes[balance_direction as usize] = None;
+        }
+
+        // Moving first_level_node to second_level_node children and making second_level_node a parent of first_level_node
         second_level_node.nodes.borrow_mut()[opposite_direction as usize] =
             Some(Rc::clone(first_level_node));
 
-        // TODO: Probably need to think about better way to calculate depth as it's not always 0 after balancing.
         *second_level_node.one_side_depth.borrow_mut() = 0;
         *first_level_node.one_side_depth.borrow_mut() = 0;
+
+        let second_level_node_weak_link = Rc::downgrade(&second_level_node);
 
         match first_level_node.parent().upgrade() {
             // Our three elements are the only elements in a tree
             None => {
+                *second_level_node.parent.borrow_mut() = Weak::new();
                 self.head = second_level_node;
             }
             Some(parent_of_three) => {
-                parent_of_three.nodes.borrow_mut()[balance_direction as usize] =
+                let insert_direction_for_parent_of_three =
+                    BinarySearchTree::get_directions(&parent_of_three, &first_level_node);
+
+                *second_level_node.parent.borrow_mut() = Rc::downgrade(&parent_of_three);
+                parent_of_three.nodes.borrow_mut()[insert_direction_for_parent_of_three as usize] =
                     Some(second_level_node);
             }
         }
+
+        *first_level_node.parent.borrow_mut() = second_level_node_weak_link;
     }
 
     fn double_rotation(
@@ -296,20 +302,29 @@ where
                 .unwrap(),
         );
 
-        // TODO: Probably need to think about better way to calculate depth as it's not always 2/1/0 after balancing.
         *first_level_node.one_side_depth.borrow_mut() =
             Directions::get_depth(balance_direction) * 2;
         *second_level_node.one_side_depth.borrow_mut() = Directions::get_depth(balance_direction);
         *third_level_node.one_side_depth.borrow_mut() = 0;
 
-        // TODO: When I change children I also need to change their parent(parent field, which contains Weak link to a parent). So when we update depth on next insert we'll be able to take appropriate parent.
-        //  Currently we take old parent.
-        //  E.g. if node 20 has been moved from node 30 to node 40, then we need to change its parent as well(from 30 to 40), not just children of 30 and 40
-        nodes_of_second_level[opposite_direction as usize] =
+        let third_level_node_same_line_child =
             third_level_node.nodes.borrow_mut()[balance_direction as usize].take();
+
+        if let Some(third_level_node_same_line_child) = third_level_node_same_line_child {
+            *third_level_node_same_line_child.parent.borrow_mut() =
+                Rc::downgrade(&second_level_node);
+            nodes_of_second_level[opposite_direction as usize] =
+                Some(third_level_node_same_line_child);
+        } else {
+            nodes_of_second_level[opposite_direction as usize] = None;
+        }
+
         third_level_node.nodes.borrow_mut()[balance_direction as usize] =
             Some(Rc::clone(&second_level_node));
+        *second_level_node.parent.borrow_mut() = Rc::downgrade(&third_level_node);
+
         nodes_of_first_level[balance_direction as usize] = Some(Rc::clone(&third_level_node));
+        *third_level_node.parent.borrow_mut() = Rc::downgrade(&first_level_node);
     }
 }
 
@@ -386,28 +401,45 @@ mod tests {
         assert_eq!(&40, forty_node.value());*/
 
         tree.insert("ten", 10);
-        /*tree.insert("nine", 9);*/
+        tree.insert("nine", 9);
+
+        tree.insert("seventy", 70);
+        tree.insert("eighty", 80);
+        tree.insert("ninety", 90);
+        tree.insert("hundred", 100);
 
         let head = tree.head();
         assert_eq!(30, head.value);
 
         let nodes = head.nodes();
-        let ten_node = nodes[0].as_ref().unwrap();
-        let fifty_node = nodes[1].as_ref().unwrap();
-        assert_eq!(&10, ten_node.value());
-        assert_eq!(&50, fifty_node.value());
+        let twenty = nodes[0].as_ref().unwrap();
+        let seventy = nodes[1].as_ref().unwrap();
+        assert_eq!(&10, twenty.value());
+        assert_eq!(&70, seventy.value());
 
-        let nodes = ten_node.nodes();
-        let nine_node = nodes[0].as_ref().unwrap();
-        let twenty_node = nodes[1].as_ref().unwrap();
-        assert_eq!(&9, nine_node.value());
-        assert_eq!(&20, twenty_node.value());
+        let nodes = twenty.nodes();
+        let ten = nodes[0].as_ref().unwrap();
+        let twenty = nodes[1].as_ref().unwrap();
+        assert_eq!(&9, ten.value());
+        assert_eq!(&20, twenty.value());
 
-        let nodes = fifty_node.nodes();
-        let forty_node = nodes[0].as_ref().unwrap();
-        let sixty_node = nodes[1].as_ref().unwrap();
-        assert_eq!(&40, forty_node.value());
-        assert_eq!(&60, sixty_node.value());
+        let nodes = seventy.nodes();
+        let fifty = nodes[0].as_ref().unwrap();
+        let ninety = nodes[1].as_ref().unwrap();
+        assert_eq!(&50, fifty.value());
+        assert_eq!(&90, ninety.value());
+
+        let nodes = fifty.nodes();
+        let forty = nodes[0].as_ref().unwrap();
+        let sixty = nodes[1].as_ref().unwrap();
+        assert_eq!(&40, forty.value());
+        assert_eq!(&60, sixty.value());
+
+        let nodes = ninety.nodes();
+        let eighty = nodes[0].as_ref().unwrap();
+        let hundred = nodes[1].as_ref().unwrap();
+        assert_eq!(&80, eighty.value());
+        assert_eq!(&100, hundred.value());
 
         /*tree.insert("seventy", 70);
         tree.insert("eighty", 80);
@@ -482,5 +514,246 @@ mod tests {
 
         // Checking child nodes of 100, should be empty on both sides
         assert!(hundred_node.nodes().iter().all(Option::is_none));*/
+    }
+
+    #[test]
+    fn should_balance_tree_2() {
+        let mut tree = BinarySearchTree::from_head("sixty", 60);
+
+        tree.insert("fifty", 50);
+        tree.insert("forty", 40);
+        tree.insert("thirty", 30);
+        tree.insert("twenty", 20);
+
+        /*let head = tree.head();
+        assert_eq!(50, head.value);
+
+        let nodes = head.nodes();
+        let thirty_node = nodes[0].as_ref().unwrap();
+        let sixty_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&30, thirty_node.value());
+        assert_eq!(&60, sixty_node.value());
+
+        let nodes = thirty_node.nodes();
+        let twenty_node = nodes[0].as_ref().unwrap();
+        let forty_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&20, twenty_node.value());
+        assert_eq!(&40, forty_node.value());*/
+
+        tree.insert("ten", 10);
+        tree.insert("nine", 9);
+
+        tree.insert("seventy", 70);
+        tree.insert("eighty", 80);
+        tree.insert("ninety", 90);
+        tree.insert("hundred", 100);
+
+        tree.insert("sixty_five", 65);
+        tree.insert("sixty_six", 66);
+        tree.insert("sixty_seven", 66);
+
+        let head = tree.head();
+        assert_eq!(50, head.value);
+
+        let nodes = head.nodes();
+        let _30 = nodes[0].as_ref().unwrap();
+        let _70 = nodes[1].as_ref().unwrap();
+        assert_eq!(&30, _30.value());
+        assert_eq!(&70, _70.value());
+
+        let nodes = _30.nodes();
+        let _10 = nodes[0].as_ref().unwrap();
+        let _40 = nodes[1].as_ref().unwrap();
+        assert_eq!(&10, _10.value());
+        assert_eq!(&40, _40.value());
+
+        let nodes = _10.nodes();
+        let _9 = nodes[0].as_ref().unwrap();
+        let _20 = nodes[1].as_ref().unwrap();
+        assert_eq!(&9, _9.value());
+        assert_eq!(&20, _20.value());
+
+        let nodes = _70.nodes();
+        let _65 = nodes[0].as_ref().unwrap();
+        let _90 = nodes[1].as_ref().unwrap();
+        assert_eq!(&65, _65.value());
+        assert_eq!(&90, _90.value());
+
+        let nodes = _65.nodes();
+        let _60 = nodes[0].as_ref().unwrap();
+        let _66 = nodes[1].as_ref().unwrap();
+        assert_eq!(&60, _60.value());
+        assert_eq!(&66, _66.value());
+
+        let nodes = _90.nodes();
+        let _80 = nodes[0].as_ref().unwrap();
+        let _100 = nodes[1].as_ref().unwrap();
+        assert_eq!(&80, _80.value());
+        assert_eq!(&100, _100.value());
+
+        /*tree.insert("seventy", 70);
+        tree.insert("eighty", 80);
+        tree.insert("ninety", 90);
+        tree.insert("hundred", 100);
+
+        tree.insert("sixty_five", 65);
+        tree.insert("sixty_six", 66);
+        tree.insert("sixty_seven", 67);*/
+
+        // Checking that head node is correct after balancing
+        /*let head = tree.head();
+        assert_eq!(50, head.value);
+
+        // Checking child nodes of head, should be 30 on the left and 70 on the right
+        let nodes = head.nodes();
+        let thirty_node = nodes[0].as_ref().unwrap();
+        let seventy_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&30, thirty_node.value());
+        assert_eq!(&70, seventy_node.value());
+
+        // Checking child nodes of 30, should be 10 on the left and 40 on the right
+        let nodes = thirty_node.nodes();
+        let ten_node = nodes[0].as_ref().unwrap();
+        let forty_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&10, ten_node.value());
+        assert_eq!(&40, forty_node.value());
+
+        // Checking child nodes of 40, should be empty on both sides
+        assert!(forty_node.nodes().iter().all(Option::is_none));
+
+        // Checking child nodes of 10, should be 9 on the left and 20 on the right
+        let nodes = ten_node.nodes();
+        let nine_node = nodes[0].as_ref().unwrap();
+        let twenty_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&9, nine_node.value());
+        assert_eq!(&20, twenty_node.value());
+
+        // Checking child nodes of 9, should be empty on both sides
+        assert!(nine_node.nodes().iter().all(Option::is_none));
+        // Checking child nodes of 20, should be empty on both sides
+        assert!(twenty_node.nodes().iter().all(Option::is_none));
+
+        // Checking child nodes of 70, should be 65 on the left and 80 on the right
+        let nodes = seventy_node.nodes();
+        let sixty_five_node = nodes[0].as_ref().unwrap();
+        let eighty_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&65, sixty_five_node.value());
+        assert_eq!(&80, eighty_node.value());
+
+        // Checking child nodes of 60, should be 60 on the left and 66 on the right
+        let nodes = sixty_five_node.nodes();
+        let sixty_node = nodes[0].as_ref().unwrap();
+        let sixty_six_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&60, sixty_node.value());
+        assert_eq!(&66, sixty_six_node.value());
+
+        // Checking child nodes of 60, should be empty on both sides
+        assert!(sixty_node.nodes().iter().all(Option::is_none));
+
+        // Checking child nodes of 60, should be empty on the left and 67 on the right
+        let nodes = sixty_six_node.nodes();
+        let sixty_seven_node = nodes[1].as_ref().unwrap();
+        assert!(nodes[0].is_none());
+        assert_eq!(&67, sixty_seven_node.value());
+
+        // Checking child nodes of 60, should be empty on the left and 10 on the right
+        let nodes = eighty_node.nodes();
+        let hundred_node = nodes[1].as_ref().unwrap();
+        assert!(nodes[0].is_none());
+        assert_eq!(&10, hundred_node.value());
+
+        // Checking child nodes of 100, should be empty on both sides
+        assert!(hundred_node.nodes().iter().all(Option::is_none));*/
+    }
+
+    #[test]
+    fn should_balance_tree_3() {
+        let mut tree = BinarySearchTree::from_head("sixty", 60);
+
+        tree.insert("fifty", 50);
+        tree.insert("forty", 40);
+        tree.insert("thirty", 30);
+        tree.insert("twenty", 20);
+
+        tree.insert("ten", 10);
+        tree.insert("nine", 9);
+
+        tree.insert("seventy", 70);
+        tree.insert("eighty", 80);
+        tree.insert("ninety", 90);
+        tree.insert("hundred", 100);
+
+        tree.insert("sixty_five", 65);
+        tree.insert("sixty_six", 66);
+        tree.insert("sixty_seven", 67);
+
+        // Checking that head node is correct after balancing
+        let head = tree.head();
+        assert_eq!(&50, head.value());
+
+        // Checking child nodes of head, should be 30 on the left and 70 on the right
+        let nodes = head.nodes();
+        let thirty_node = nodes[0].as_ref().unwrap();
+        let seventy_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&30, thirty_node.value());
+        assert_eq!(&70, seventy_node.value());
+
+        // Checking child nodes of 30, should be 10 on the left and 40 on the right
+        let nodes = thirty_node.nodes();
+        let ten_node = nodes[0].as_ref().unwrap();
+        let forty_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&10, ten_node.value());
+        assert_eq!(&40, forty_node.value());
+
+        // Checking child nodes of 40, should be empty on both sides
+        assert!(forty_node.nodes().iter().all(Option::is_none));
+
+        // Checking child nodes of 10, should be 9 on the left and 20 on the right
+        let nodes = ten_node.nodes();
+        let nine_node = nodes[0].as_ref().unwrap();
+        let twenty_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&9, nine_node.value());
+        assert_eq!(&20, twenty_node.value());
+
+        // Checking child nodes of 9, should be empty on both sides
+        assert!(nine_node.nodes().iter().all(Option::is_none));
+        // Checking child nodes of 20, should be empty on both sides
+        assert!(twenty_node.nodes().iter().all(Option::is_none));
+
+        // Checking child nodes of 70, should be 65 on the left and 80 on the right
+        let nodes = seventy_node.nodes();
+        let sixty_five_node = nodes[0].as_ref().unwrap();
+        let ninety_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&65, sixty_five_node.value());
+        assert_eq!(&90, ninety_node.value());
+
+        // Checking child nodes of 60, should be 60 on the left and 66 on the right
+        let nodes = sixty_five_node.nodes();
+        let sixty_node = nodes[0].as_ref().unwrap();
+        let sixty_six_node = nodes[1].as_ref().unwrap();
+        assert_eq!(&60, sixty_node.value());
+        assert_eq!(&66, sixty_six_node.value());
+
+        // Checking child nodes of 60, should be empty on both sides
+        assert!(sixty_node.nodes().iter().all(Option::is_none));
+
+        // Checking child nodes of 60, should be empty on the left and 67 on the right
+        let nodes = sixty_six_node.nodes();
+        let sixty_seven_node = nodes[1].as_ref().unwrap();
+        assert!(nodes[0].is_none());
+        assert_eq!(&67, sixty_seven_node.value());
+
+        // Checking child nodes of 60, should be empty on the left and 10 on the right
+        let nodes = ninety_node.nodes();
+        let eighty_node = nodes[0].as_ref().unwrap();
+        let hundred_node = nodes[1].as_ref().unwrap();
+
+        assert_eq!(&80, eighty_node.value());
+        assert_eq!(&100, hundred_node.value());
+
+        // Checking child nodes of 100, should be empty on both sides
+        assert!(eighty_node.nodes().iter().all(Option::is_none));
+        // Checking child nodes of 80, should be empty on both sides
+        assert!(hundred_node.nodes().iter().all(Option::is_none));
     }
 }
