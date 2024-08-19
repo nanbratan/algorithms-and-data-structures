@@ -1,6 +1,6 @@
 #![allow(clippy::module_name_repetitions)]
 
-use crate::binary_search_tree::{BinarySearchTree, BinarySearchTreeNode};
+use crate::binary_search_tree::{AVLTree, BinarySearchTreeNode};
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -47,7 +47,7 @@ where
     }
 }
 pub fn binary_search_for_tree<V, K>(
-    tree: &BinarySearchTree<V, K>,
+    tree: &AVLTree<V, K>,
     desired_value: &V,
 ) -> Option<Rc<BinarySearchTreeNode<V, K>>>
 where
@@ -79,8 +79,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::{binary_search, binary_search_for_tree};
-    use crate::binary_search_tree::BinarySearchTree;
-    use crate::tree::TreeNode;
+    use crate::binary_search_tree::AVLTree;
 
     fn get_list() -> Vec<i32> {
         vec![
@@ -88,8 +87,8 @@ mod tests {
             24, 25, 26, 27, 28, 29, 30, 31, 32,
         ]
     }
-    fn get_binary_tree<'a>() -> BinarySearchTree<i32, &'a str> {
-        let mut tree = BinarySearchTree::from_head("head_id", 5);
+    fn get_binary_tree<'a>() -> AVLTree<i32, &'a str> {
+        let mut tree = AVLTree::from_head("head_id", 5);
 
         tree.insert("fourth", 4);
         tree.insert("third", 3);
