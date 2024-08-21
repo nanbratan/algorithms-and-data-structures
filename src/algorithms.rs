@@ -9,6 +9,7 @@ pub use selection_sort::selection_sort_by_key;
 mod binary_search;
 mod breadth_first_search;
 mod depth_first_search;
+mod dijkstra_search;
 mod quick_sort;
 mod selection_sort;
 

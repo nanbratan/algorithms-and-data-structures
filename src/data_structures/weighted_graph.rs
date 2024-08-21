@@ -11,9 +11,12 @@ pub struct Edge<T, K> {
 }
 
 impl<T, K> Edge<T, K> {
+    #[must_use]
     pub fn weight(&self) -> i32 {
         self.weight
     }
+
+    #[must_use]
     pub fn node(&self) -> &Rc<WeightedGraphNode<T, K>> {
         &self.node
     }
@@ -25,7 +28,10 @@ pub struct WeightedGraphNode<T, K> {
     nodes: RefCell<Vec<Edge<T, K>>>,
 }
 
-impl<T, K> WeightedGraphNode<T, K> {
+impl<T, K> WeightedGraphNode<T, K>
+where
+    K: Copy,
+{
     #[must_use]
     pub fn new(id: K, value: T) -> Self {
         Self {
@@ -36,8 +42,8 @@ impl<T, K> WeightedGraphNode<T, K> {
     }
 
     #[must_use]
-    pub fn id(&self) -> &K {
-        &self.id
+    pub fn id(&self) -> K {
+        self.id
     }
 
     #[must_use]
