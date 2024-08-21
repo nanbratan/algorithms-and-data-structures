@@ -312,6 +312,7 @@ where
     //       B             C                 B   A
     //        \           /
     //         C         B
+    #[allow(clippy::unused_self)]
     fn double_rotation(
         &self,
         first_level_node: &Rc<BinarySearchTreeNode<V, K>>,
