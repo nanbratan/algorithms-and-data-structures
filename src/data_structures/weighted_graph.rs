@@ -66,10 +66,17 @@ where
 
         self.0.insert(node.id, node);
     }
-
+    ///
+    /// # Panics
+    ///
+    /// If `from_node_id` or `to_node_id` does not exist in a `WeightedGraph`, then this method will panic at either of them.
     pub fn connect(&mut self, from_node_id: K, to_node_id: K, edge_weight: i32) {
-        let from_node = self.get(&from_node_id).unwrap();
-        let to_node = self.get(&to_node_id).unwrap();
+        let from_node = self
+            .get(&from_node_id)
+            .expect("Passed \"from_node_id\" does not exist");
+        let to_node = self
+            .get(&to_node_id)
+            .expect("Passed \"to_node_id\" does not exist");
 
         from_node.nodes.borrow_mut().push(Edge {
             weight: edge_weight,

@@ -77,9 +77,10 @@ where
 /// 1. Find a node with the lowest cost(a weight to get to the node). In the beginning we need to calculate s cost from start node to its children.
 /// 2. Then We take the cheapest node(a node with the lowest cost) and calculate cost to its children(the same way as we did with the start node).
 /// 3. If new cost from the current node to a child is lower than existing cost(e.g. there was another path to the child, but more expensive), then we update the child's cost and its parent.
-/// 3. When cost to children is calculated - we drop a node from `cost` HashMap as we don't need it anymore, we found cost to its children already.
+/// 3. When cost to children is calculated - we drop a node from `cost` `HashMap` as we don't need it anymore, we found cost to its children already.
 /// 4. Repeat 1-3 steps till the lowest node is the `finish` node. That means we reached the end of our graph and visited all nodes.
-/// 5. Build a chain from the start to the finish using `parents` HashMap.
+/// 5. Build a chain from the start to the finish using `parents` `HashMap`.
+#[allow(clippy::missing_panics_doc)]
 pub fn dijkstra_search<K>(graph: &WeightedGraph<K>, start: K, finish: K) -> Vec<K>
 where
     K: Ord + Hash + Copy + Eq,
