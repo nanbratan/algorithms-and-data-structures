@@ -5,38 +5,36 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::rc::Rc;
 
-pub struct Edge<T, K> {
+pub struct Edge<K> {
     weight: i32,
-    node: Rc<WeightedGraphNode<T, K>>,
+    node: Rc<WeightedGraphNode<K>>,
 }
 
-impl<T, K> Edge<T, K> {
+impl<K> Edge<K> {
     #[must_use]
     pub fn weight(&self) -> i32 {
         self.weight
     }
 
     #[must_use]
-    pub fn node(&self) -> &Rc<WeightedGraphNode<T, K>> {
+    pub fn node(&self) -> &Rc<WeightedGraphNode<K>> {
         &self.node
     }
 }
 
-pub struct WeightedGraphNode<T, K> {
+pub struct WeightedGraphNode<K> {
     id: K,
-    value: T,
-    nodes: RefCell<Vec<Edge<T, K>>>,
+    nodes: RefCell<Vec<Edge<K>>>,
 }
 
-impl<T, K> WeightedGraphNode<T, K>
+impl<K> WeightedGraphNode<K>
 where
-    K: Copy,
+    K: Ord + Hash + Copy + Eq,
 {
     #[must_use]
-    pub fn new(id: K, value: T) -> Self {
+    pub fn new(id: K) -> Self {
         Self {
             id,
-            value,
             nodes: RefCell::new(vec![]),
         }
     }
@@ -47,29 +45,24 @@ where
     }
 
     #[must_use]
-    pub fn value(&self) -> &T {
-        &self.value
-    }
-
-    #[must_use]
-    pub fn nodes(&self) -> Ref<Vec<Edge<T, K>>> {
+    pub fn nodes(&self) -> Ref<Vec<Edge<K>>> {
         Ref::map(self.nodes.borrow(), |x| x)
     }
 }
 
-pub struct WeightedGraph<T, K = i32>(HashMap<K, Rc<WeightedGraphNode<T, K>>>);
+pub struct WeightedGraph<K = i32>(HashMap<K, Rc<WeightedGraphNode<K>>>);
 
-impl<T, K> WeightedGraph<T, K>
+impl<K> WeightedGraph<K>
 where
-    K: Hash + Eq + Copy,
+    K: Ord + Hash + Copy + Eq,
 {
     #[must_use]
     pub fn new() -> Self {
         WeightedGraph(HashMap::new())
     }
 
-    pub fn insert(&mut self, id: K, value: T) {
-        let node = Rc::new(WeightedGraphNode::new(id, value));
+    pub fn insert(&mut self, id: K) {
+        let node = Rc::new(WeightedGraphNode::new(id));
 
         self.0.insert(node.id, node);
     }
@@ -85,7 +78,7 @@ where
     }
 
     #[must_use]
-    pub fn get(&self, node_id: &K) -> Option<&Rc<WeightedGraphNode<T, K>>> {
+    pub fn get(&self, node_id: &K) -> Option<&Rc<WeightedGraphNode<K>>> {
         self.0.get(node_id)
     }
 
@@ -100,9 +93,9 @@ where
     }
 }
 
-impl<T, K> Default for WeightedGraph<T, K>
+impl<K> Default for WeightedGraph<K>
 where
-    K: Eq + Hash + Copy,
+    K: Ord + Hash + Copy + Eq,
 {
     fn default() -> Self {
         Self::new()
