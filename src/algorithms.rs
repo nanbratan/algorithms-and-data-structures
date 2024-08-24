@@ -11,6 +11,7 @@ mod binary_search;
 mod breadth_first_search;
 mod depth_first_search;
 mod dijkstra_search;
+mod k_nearest_neighbor;
 mod quick_sort;
 mod selection_sort;
 
