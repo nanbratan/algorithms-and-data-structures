@@ -301,7 +301,7 @@ where
         *first_level_node.parent.borrow_mut() = second_level_node_weak_link;
     }
 
-    /// If there is a node with depth -2/2, but its child has the opposite depth(for example our node has depth 2, but it's children has -1), then we need to align nodes into one line
+    /// If there is a node with depth -2/2, but its child has the opposite depth(for example our node has depth 2, but its children has -1), then we need to align nodes into one line
     /// and only then make a single rotation
     /// To balance them, we can rotate them, i.e. make middle element a parent of the chain and place other items accordingly.
     /// After rotation, we should get this result `3 <- 2 -> 1`, i.e. 2 now is parent, and it points to 3(on the left) and 1(on the right).
