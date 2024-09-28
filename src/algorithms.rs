@@ -13,6 +13,7 @@ mod depth_first_search;
 mod dijkstra_search;
 mod insertion_sort;
 mod k_nearest_neighbor;
+mod merge_sort;
 mod quick_sort;
 mod selection_sort;
 
