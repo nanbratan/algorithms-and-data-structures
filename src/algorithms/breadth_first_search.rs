@@ -1,6 +1,6 @@
 use crate::graph::{Graph, GraphNode};
 use crate::Queue;
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::rc::Rc;
@@ -31,14 +31,14 @@ where
     K: Eq + Hash + Copy + Debug,
     P: Fn(&T) -> bool,
 {
-    let mut checked_nodes = HashMap::with_capacity(graph.len());
+    let mut checked_nodes = HashSet::with_capacity(graph.len());
     let head_node = graph.get(&start_node_id)?;
     let mut queue = Queue::from(head_node.nodes().as_ref()?);
 
     while let Some(queue_item) = queue.take() {
         // Different nodes may point to a same node, so to avoid extra check of already checked nodes - we log them and skip them
         // It also prevents infinity loop in case if we have 2 nodes which points to each other
-        if checked_nodes.contains_key(queue_item.id()) {
+        if checked_nodes.contains(queue_item.id()) {
             continue;
         }
 
@@ -46,7 +46,7 @@ where
             return Some(queue_item);
         }
 
-        checked_nodes.insert(queue_item.id(), true);
+        checked_nodes.insert(queue_item.id());
 
         if let Some(nodes) = &queue_item.nodes() {
             queue.append(nodes);
