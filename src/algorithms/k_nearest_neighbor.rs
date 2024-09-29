@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
 
+#[allow(dead_code)]
 pub trait Neighbor {
     fn calculate_neighbor_distance(&self, another_neighbor: &Self) -> f64;
 }
@@ -37,6 +38,7 @@ impl<'a> Ord for NeighborWithDistance<'a> {
 }
 
 // TODO: Docs
+#[allow(dead_code)]
 pub fn k_nearest_neighbor<'a, T: Neighbor>(
     neighbors: &'a HashMap<&str, T>,
     item_name: &'static str,
